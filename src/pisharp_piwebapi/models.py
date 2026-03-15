@@ -101,6 +101,19 @@ class PIDatabase(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+class PIDataServer(BaseModel):
+    """Represents a PI Data Server (PI Server)."""
+
+    web_id: str = Field(alias="WebId")
+    name: str = Field(alias="Name")
+    path: str = Field(alias="Path", default="")
+    is_connected: bool = Field(alias="IsConnected", default=False)
+    server_version: str = Field(alias="ServerVersion", default="")
+    links: dict[str, str] = Field(alias="Links", default_factory=dict)
+
+    model_config = {"populate_by_name": True}
+
+
 class BatchResponseItem(BaseModel):
     """A single response within a PI Web API batch result."""
 

@@ -9,6 +9,7 @@ import httpx
 
 from pisharp_piwebapi.auth import basic_auth, kerberos_auth
 from pisharp_piwebapi.batch import AsyncBatchMixin, BatchMixin
+from pisharp_piwebapi.elements import AsyncElementsMixin, ElementsMixin
 from pisharp_piwebapi.exceptions import raise_for_response, raise_for_response_async
 from pisharp_piwebapi.pagination import AsyncPaginationMixin, PaginationMixin
 from pisharp_piwebapi.points import AsyncPointsMixin, PointsMixin
@@ -48,6 +49,13 @@ class _StreamsAccessor(StreamsMixin):
         self._client = client
 
 
+class _ElementsAccessor(ElementsMixin):
+    """Namespace for AF element operations on the sync client."""
+
+    def __init__(self, client: httpx.Client) -> None:
+        self._client = client
+
+
 class _AsyncPointsAccessor(AsyncPointsMixin):
     """Namespace for point operations on the async client."""
 
@@ -57,6 +65,13 @@ class _AsyncPointsAccessor(AsyncPointsMixin):
 
 class _AsyncStreamsAccessor(AsyncStreamsMixin):
     """Namespace for stream operations on the async client."""
+
+    def __init__(self, client: httpx.AsyncClient) -> None:
+        self._client = client
+
+
+class _AsyncElementsAccessor(AsyncElementsMixin):
+    """Namespace for AF element operations on the async client."""
 
     def __init__(self, client: httpx.AsyncClient) -> None:
         self._client = client
@@ -122,6 +137,7 @@ class PIWebAPIClient(BatchMixin, PaginationMixin):
         )
         self.points = _PointsAccessor(self._client)
         self.streams = _StreamsAccessor(self._client)
+        self.elements = _ElementsAccessor(self._client)
 
     def close(self) -> None:
         """Close the underlying HTTP connection."""
@@ -194,6 +210,7 @@ class AsyncPIWebAPIClient(AsyncBatchMixin, AsyncPaginationMixin):
         )
         self.points = _AsyncPointsAccessor(self._client)
         self.streams = _AsyncStreamsAccessor(self._client)
+        self.elements = _AsyncElementsAccessor(self._client)
 
     async def aclose(self) -> None:
         """Close the underlying HTTP connection."""

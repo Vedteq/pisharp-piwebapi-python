@@ -7,7 +7,7 @@ import pytest
 import respx
 
 from pisharp_piwebapi.exceptions import AuthenticationError, NotFoundError, ServerError
-from pisharp_piwebapi.models import PIPoint
+from pisharp_piwebapi.models import PIDataServer, PIPoint
 from pisharp_piwebapi.points import AsyncPointsMixin, PointsMixin
 
 BASE = "https://piserver/piwebapi"
@@ -303,3 +303,159 @@ async def test_async_search_not_found_raises() -> None:
         pts = _AsyncPoints(client)
         with pytest.raises(NotFoundError):
             await pts.search(DS_WEB_ID)
+
+
+# ---------------------------------------------------------------------------
+# Shared data server payload
+# ---------------------------------------------------------------------------
+
+DATA_SERVER_PAYLOAD = {
+    "WebId": DS_WEB_ID,
+    "Name": "PIServer01",
+    "Path": "\\\\PIServer01",
+    "IsConnected": True,
+    "ServerVersion": "3.4.400.1162",
+    "Links": {"Self": f"{BASE}/dataservers/{DS_WEB_ID}"},
+}
+
+DATA_SERVERS_PAYLOAD = {"Items": [DATA_SERVER_PAYLOAD], "Links": {}}
+
+
+# ===========================================================================
+# Sync — get_data_servers
+# ===========================================================================
+
+
+@respx.mock
+def test_get_data_servers_happy_path() -> None:
+    """get_data_servers returns a list of PIDataServer objects."""
+    respx.get(f"{BASE}/dataservers").mock(
+        return_value=httpx.Response(200, json=DATA_SERVERS_PAYLOAD)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        pts = _SyncPoints(client)
+        servers = pts.get_data_servers()
+
+    assert len(servers) == 1
+    assert isinstance(servers[0], PIDataServer)
+    assert servers[0].web_id == DS_WEB_ID
+    assert servers[0].name == "PIServer01"
+    assert servers[0].is_connected is True
+
+
+@respx.mock
+def test_get_data_servers_auth_error_raises() -> None:
+    """get_data_servers raises AuthenticationError on 401."""
+    respx.get(f"{BASE}/dataservers").mock(
+        return_value=httpx.Response(401, json={"Message": "Unauthorized"})
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        pts = _SyncPoints(client)
+        with pytest.raises(AuthenticationError) as exc_info:
+            pts.get_data_servers()
+
+    assert exc_info.value.status_code == 401
+
+
+# ===========================================================================
+# Sync — get_data_server
+# ===========================================================================
+
+
+@respx.mock
+def test_get_data_server_happy_path() -> None:
+    """get_data_server returns a single PIDataServer by WebID."""
+    respx.get(f"{BASE}/dataservers/{DS_WEB_ID}").mock(
+        return_value=httpx.Response(200, json=DATA_SERVER_PAYLOAD)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        pts = _SyncPoints(client)
+        server = pts.get_data_server(DS_WEB_ID)
+
+    assert isinstance(server, PIDataServer)
+    assert server.web_id == DS_WEB_ID
+    assert server.server_version == "3.4.400.1162"
+
+
+@respx.mock
+def test_get_data_server_not_found_raises() -> None:
+    """get_data_server raises NotFoundError on 404."""
+    respx.get(f"{BASE}/dataservers/{DS_WEB_ID}").mock(
+        return_value=httpx.Response(404, json={"Message": "Data server not found"})
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        pts = _SyncPoints(client)
+        with pytest.raises(NotFoundError) as exc_info:
+            pts.get_data_server(DS_WEB_ID)
+
+    assert exc_info.value.status_code == 404
+
+
+# ===========================================================================
+# Async — get_data_servers
+# ===========================================================================
+
+
+@respx.mock
+async def test_async_get_data_servers_happy_path() -> None:
+    """Async get_data_servers returns a list of PIDataServer objects."""
+    respx.get(f"{BASE}/dataservers").mock(
+        return_value=httpx.Response(200, json=DATA_SERVERS_PAYLOAD)
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        pts = _AsyncPoints(client)
+        servers = await pts.get_data_servers()
+
+    assert len(servers) == 1
+    assert servers[0].name == "PIServer01"
+
+
+@respx.mock
+async def test_async_get_data_servers_auth_error_raises() -> None:
+    """Async get_data_servers raises AuthenticationError on 401."""
+    respx.get(f"{BASE}/dataservers").mock(
+        return_value=httpx.Response(401, json={"Message": "Unauthorized"})
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        pts = _AsyncPoints(client)
+        with pytest.raises(AuthenticationError):
+            await pts.get_data_servers()
+
+
+# ===========================================================================
+# Async — get_data_server
+# ===========================================================================
+
+
+@respx.mock
+async def test_async_get_data_server_happy_path() -> None:
+    """Async get_data_server returns a single PIDataServer by WebID."""
+    respx.get(f"{BASE}/dataservers/{DS_WEB_ID}").mock(
+        return_value=httpx.Response(200, json=DATA_SERVER_PAYLOAD)
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        pts = _AsyncPoints(client)
+        server = await pts.get_data_server(DS_WEB_ID)
+
+    assert server.web_id == DS_WEB_ID
+    assert server.is_connected is True
+
+
+@respx.mock
+async def test_async_get_data_server_not_found_raises() -> None:
+    """Async get_data_server raises NotFoundError on 404."""
+    respx.get(f"{BASE}/dataservers/{DS_WEB_ID}").mock(
+        return_value=httpx.Response(404, json={"Message": "Not found"})
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        pts = _AsyncPoints(client)
+        with pytest.raises(NotFoundError):
+            await pts.get_data_server(DS_WEB_ID)

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from urllib.parse import quote
 
 from pisharp_piwebapi.exceptions import raise_for_response, raise_for_response_async
-from pisharp_piwebapi.models import PIPoint
+from pisharp_piwebapi.models import PIDataServer, PIPoint
 
 if TYPE_CHECKING:
     import httpx
@@ -90,6 +90,40 @@ class PointsMixin:
         items = data.get("Items", data) if isinstance(data, dict) else data
         return [PIPoint.model_validate(item) for item in items]
 
+    def get_data_servers(self) -> list[PIDataServer]:
+        """Return all PI Data Servers (PI Servers) registered with PI Web API.
+
+        Returns:
+            List of :class:`PIDataServer` objects.
+
+        Raises:
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = self._client.get("/dataservers")
+        raise_for_response(resp)
+        data = resp.json()
+        items = data.get("Items", data) if isinstance(data, dict) else data
+        return [PIDataServer.model_validate(item) for item in items]
+
+    def get_data_server(self, web_id: str) -> PIDataServer:
+        """Return a single PI Data Server by its WebID.
+
+        Args:
+            web_id: WebID of the PI Data Server.
+
+        Returns:
+            A :class:`PIDataServer` populated from the API response.
+
+        Raises:
+            NotFoundError: If no data server with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = self._client.get(f"/dataservers/{quote(web_id, safe='')}")
+        raise_for_response(resp)
+        return PIDataServer.model_validate(resp.json())
+
 
 class AsyncPointsMixin:
     """Async methods for PI Point lookup. Mixed into the async client class."""
@@ -166,3 +200,37 @@ class AsyncPointsMixin:
         data = resp.json()
         items = data.get("Items", data) if isinstance(data, dict) else data
         return [PIPoint.model_validate(item) for item in items]
+
+    async def get_data_servers(self) -> list[PIDataServer]:
+        """Return all PI Data Servers (PI Servers) registered with PI Web API.
+
+        Returns:
+            List of :class:`PIDataServer` objects.
+
+        Raises:
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = await self._client.get("/dataservers")
+        await raise_for_response_async(resp)
+        data = resp.json()
+        items = data.get("Items", data) if isinstance(data, dict) else data
+        return [PIDataServer.model_validate(item) for item in items]
+
+    async def get_data_server(self, web_id: str) -> PIDataServer:
+        """Return a single PI Data Server by its WebID.
+
+        Args:
+            web_id: WebID of the PI Data Server.
+
+        Returns:
+            A :class:`PIDataServer` populated from the API response.
+
+        Raises:
+            NotFoundError: If no data server with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = await self._client.get(f"/dataservers/{quote(web_id, safe='')}")
+        await raise_for_response_async(resp)
+        return PIDataServer.model_validate(resp.json())
