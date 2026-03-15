@@ -7,12 +7,13 @@ from typing import Any
 
 import httpx
 
-from pisharp_piwebapi.auth import basic_auth, kerberos_auth
+from pisharp_piwebapi.auth import basic_auth, kerberos_auth, ntlm_auth
 from pisharp_piwebapi.batch import AsyncBatchMixin, BatchMixin
 from pisharp_piwebapi.elements import AsyncElementsMixin, ElementsMixin
 from pisharp_piwebapi.exceptions import raise_for_response, raise_for_response_async
 from pisharp_piwebapi.pagination import AsyncPaginationMixin, PaginationMixin
 from pisharp_piwebapi.points import AsyncPointsMixin, PointsMixin
+from pisharp_piwebapi.streamsets import AsyncStreamSetsMixin, StreamSetsMixin
 from pisharp_piwebapi.values import AsyncStreamsMixin, StreamsMixin
 
 
@@ -70,8 +71,22 @@ class _AsyncStreamsAccessor(AsyncStreamsMixin):
         self._client = client
 
 
+class _StreamSetsAccessor(StreamSetsMixin):
+    """Namespace for streamset (multi-stream) operations on the sync client."""
+
+    def __init__(self, client: httpx.Client) -> None:
+        self._client = client
+
+
 class _AsyncElementsAccessor(AsyncElementsMixin):
     """Namespace for AF element operations on the async client."""
+
+    def __init__(self, client: httpx.AsyncClient) -> None:
+        self._client = client
+
+
+class _AsyncStreamSetsAccessor(AsyncStreamSetsMixin):
+    """Namespace for streamset (multi-stream) operations on the async client."""
 
     def __init__(self, client: httpx.AsyncClient) -> None:
         self._client = client
@@ -106,9 +121,10 @@ class PIWebAPIClient(BatchMixin, PaginationMixin):
 
         Args:
             base_url: PI Web API base URL (e.g. "https://server/piwebapi").
-            username: Username for Basic auth.
-            password: Password for Basic auth.
-            auth_method: Authentication method ("basic" or "kerberos").
+            username: Username for Basic or NTLM auth.
+            password: Password for Basic or NTLM auth.
+            auth_method: Authentication method — one of ``"basic"``,
+                ``"kerberos"``, or ``"ntlm"``. Defaults to ``"basic"``.
             verify_ssl: Whether to verify SSL certificates.
             cert: Client certificate path or (cert, key) tuple.
             timeout: Request timeout in seconds.
@@ -116,6 +132,8 @@ class PIWebAPIClient(BatchMixin, PaginationMixin):
         auth: httpx.Auth | None = None
         if auth_method == "kerberos":
             auth = kerberos_auth()
+        elif auth_method == "ntlm" and username and password:
+            auth = ntlm_auth(username, password)
         elif username and password:
             auth = basic_auth(username, password)
 
@@ -137,6 +155,7 @@ class PIWebAPIClient(BatchMixin, PaginationMixin):
         )
         self.points = _PointsAccessor(self._client)
         self.streams = _StreamsAccessor(self._client)
+        self.streamsets = _StreamSetsAccessor(self._client)
         self.elements = _ElementsAccessor(self._client)
 
     def close(self) -> None:
@@ -179,9 +198,10 @@ class AsyncPIWebAPIClient(AsyncBatchMixin, AsyncPaginationMixin):
 
         Args:
             base_url: PI Web API base URL (e.g. "https://server/piwebapi").
-            username: Username for Basic auth.
-            password: Password for Basic auth.
-            auth_method: Authentication method ("basic" or "kerberos").
+            username: Username for Basic or NTLM auth.
+            password: Password for Basic or NTLM auth.
+            auth_method: Authentication method — one of ``"basic"``,
+                ``"kerberos"``, or ``"ntlm"``. Defaults to ``"basic"``.
             verify_ssl: Whether to verify SSL certificates.
             cert: Client certificate path or (cert, key) tuple.
             timeout: Request timeout in seconds.
@@ -189,6 +209,8 @@ class AsyncPIWebAPIClient(AsyncBatchMixin, AsyncPaginationMixin):
         auth: httpx.Auth | None = None
         if auth_method == "kerberos":
             auth = kerberos_auth()
+        elif auth_method == "ntlm" and username and password:
+            auth = ntlm_auth(username, password)
         elif username and password:
             auth = basic_auth(username, password)
 
@@ -210,6 +232,7 @@ class AsyncPIWebAPIClient(AsyncBatchMixin, AsyncPaginationMixin):
         )
         self.points = _AsyncPointsAccessor(self._client)
         self.streams = _AsyncStreamsAccessor(self._client)
+        self.streamsets = _AsyncStreamSetsAccessor(self._client)
         self.elements = _AsyncElementsAccessor(self._client)
 
     async def aclose(self) -> None:

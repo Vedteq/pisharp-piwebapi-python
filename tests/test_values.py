@@ -428,3 +428,213 @@ async def test_async_update_values_happy_path() -> None:
 
     assert result is None
     assert route.called
+
+
+# ===========================================================================
+# Shared summary payload
+# ===========================================================================
+
+SUMMARY_PAYLOAD = {
+    "WebId": WEB_ID,
+    "Name": "sinusoid",
+    "Path": "",
+    "Items": [
+        {
+            "Type": "Minimum",
+            "Value": {
+                "Timestamp": "2024-06-01T11:15:00Z",
+                "Value": 0.5,
+                "Good": True,
+                "Questionable": False,
+                "Substituted": False,
+                "Annotated": False,
+                "UnitsAbbreviation": "degC",
+            },
+        },
+        {
+            "Type": "Maximum",
+            "Value": {
+                "Timestamp": "2024-06-01T11:45:00Z",
+                "Value": 9.8,
+                "Good": True,
+                "Questionable": False,
+                "Substituted": False,
+                "Annotated": False,
+                "UnitsAbbreviation": "degC",
+            },
+        },
+        {
+            "Type": "Mean",
+            "Value": {
+                "Timestamp": "2024-06-01T11:00:00Z",
+                "Value": 5.1,
+                "Good": True,
+                "Questionable": False,
+                "Substituted": False,
+                "Annotated": False,
+                "UnitsAbbreviation": "degC",
+            },
+        },
+    ],
+    "Links": {},
+}
+
+
+# ===========================================================================
+# Sync — get_summary
+# ===========================================================================
+
+
+@respx.mock
+def test_get_summary_happy_path() -> None:
+    """get_summary returns a StreamSummary with the expected items."""
+    from pisharp_piwebapi.models import StreamSummary, StreamSummaryValue
+
+    respx.get(f"{BASE}/streams/{WEB_ID}/summary").mock(
+        return_value=httpx.Response(200, json=SUMMARY_PAYLOAD)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        streams = _SyncStreams(client)
+        summary = streams.get_summary(WEB_ID)
+
+    assert isinstance(summary, StreamSummary)
+    assert summary.web_id == WEB_ID
+    assert len(summary.items) == 3
+    assert all(isinstance(item, StreamSummaryValue) for item in summary.items)
+    types = [item.type for item in summary.items]
+    assert "Minimum" in types
+    assert "Maximum" in types
+    assert "Mean" in types
+
+
+@respx.mock
+def test_get_summary_as_dict() -> None:
+    """StreamSummary.as_dict returns a flat {type: raw_value} mapping."""
+    respx.get(f"{BASE}/streams/{WEB_ID}/summary").mock(
+        return_value=httpx.Response(200, json=SUMMARY_PAYLOAD)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        streams = _SyncStreams(client)
+        summary = streams.get_summary(WEB_ID)
+
+    d = summary.as_dict()
+    assert d["Minimum"] == pytest.approx(0.5)
+    assert d["Maximum"] == pytest.approx(9.8)
+    assert d["Mean"] == pytest.approx(5.1)
+
+
+@respx.mock
+def test_get_summary_passes_query_params() -> None:
+    """get_summary forwards all four query parameters to the API."""
+    route = respx.get(f"{BASE}/streams/{WEB_ID}/summary").mock(
+        return_value=httpx.Response(200, json=SUMMARY_PAYLOAD)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        streams = _SyncStreams(client)
+        streams.get_summary(
+            WEB_ID,
+            start_time="-8h",
+            end_time="*",
+            summary_type="Minimum,Maximum",
+            calculation_basis="EventWeighted",
+        )
+
+    raw_query = route.calls.last.request.url.query.decode()
+    assert "startTime=-8h" in raw_query
+    assert "summaryType=Minimum" in raw_query
+    assert "calculationBasis=EventWeighted" in raw_query
+
+
+@respx.mock
+def test_get_summary_404_raises() -> None:
+    """get_summary raises NotFoundError on 404."""
+    respx.get(f"{BASE}/streams/{WEB_ID}/summary").mock(
+        return_value=httpx.Response(404, json={"Message": "Stream not found"})
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        streams = _SyncStreams(client)
+        with pytest.raises(NotFoundError) as exc_info:
+            streams.get_summary(WEB_ID)
+
+    assert exc_info.value.status_code == 404
+    assert "Stream not found" in str(exc_info.value)
+
+
+@respx.mock
+def test_get_summary_server_error_raises() -> None:
+    """get_summary raises ServerError on 500."""
+    respx.get(f"{BASE}/streams/{WEB_ID}/summary").mock(
+        return_value=httpx.Response(500, json={"Message": "Internal error"})
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        streams = _SyncStreams(client)
+        with pytest.raises(ServerError) as exc_info:
+            streams.get_summary(WEB_ID)
+
+    assert exc_info.value.status_code == 500
+
+
+# ===========================================================================
+# Async — get_summary
+# ===========================================================================
+
+
+@respx.mock
+async def test_async_get_summary_happy_path() -> None:
+    """Async get_summary returns a StreamSummary with the expected items."""
+    from pisharp_piwebapi.models import StreamSummary
+
+    respx.get(f"{BASE}/streams/{WEB_ID}/summary").mock(
+        return_value=httpx.Response(200, json=SUMMARY_PAYLOAD)
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        streams = _AsyncStreams(client)
+        summary = await streams.get_summary(WEB_ID)
+
+    assert isinstance(summary, StreamSummary)
+    assert len(summary.items) == 3
+    d = summary.as_dict()
+    assert d["Maximum"] == pytest.approx(9.8)
+
+
+@respx.mock
+async def test_async_get_summary_404_raises() -> None:
+    """Async get_summary raises NotFoundError on 404."""
+    respx.get(f"{BASE}/streams/{WEB_ID}/summary").mock(
+        return_value=httpx.Response(404, json={"Message": "Not found"})
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        streams = _AsyncStreams(client)
+        with pytest.raises(NotFoundError) as exc_info:
+            await streams.get_summary(WEB_ID)
+
+    assert exc_info.value.status_code == 404
+
+
+@respx.mock
+async def test_async_get_summary_passes_query_params() -> None:
+    """Async get_summary forwards startTime, endTime, summaryType, and calculationBasis."""
+    route = respx.get(f"{BASE}/streams/{WEB_ID}/summary").mock(
+        return_value=httpx.Response(200, json=SUMMARY_PAYLOAD)
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        streams = _AsyncStreams(client)
+        await streams.get_summary(
+            WEB_ID,
+            start_time="-4h",
+            summary_type="Mean",
+            calculation_basis="EventWeighted",
+        )
+
+    raw_query = route.calls.last.request.url.query.decode()
+    assert "startTime=-4h" in raw_query
+    assert "summaryType=Mean" in raw_query
+    assert "calculationBasis=EventWeighted" in raw_query

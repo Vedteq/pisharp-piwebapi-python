@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 from urllib.parse import quote
 
 from pisharp_piwebapi.exceptions import raise_for_response, raise_for_response_async
-from pisharp_piwebapi.models import StreamValue, StreamValues
+from pisharp_piwebapi.models import StreamSummary, StreamValue, StreamValues
 
 if TYPE_CHECKING:
     import httpx
@@ -109,6 +109,58 @@ class StreamsMixin:
         )
         raise_for_response(resp)
         return StreamValues.model_validate(resp.json())
+
+    def get_summary(
+        self,
+        web_id: str,
+        start_time: str = "-1h",
+        end_time: str = "*",
+        summary_type: str = "All",
+        calculation_basis: str = "TimeWeighted",
+    ) -> StreamSummary:
+        """Read summary statistics for a stream over a time range.
+
+        Calls ``GET /streams/{webId}/summary`` and returns the summary
+        statistics (minimum, maximum, mean, standard deviation, count, and
+        percent-good) computed by the PI server.
+
+        Args:
+            web_id: WebID of the PI Point or AF attribute.
+            start_time: Start time as a PI time string (e.g. ``"-8h"``,
+                ``"2024-01-01T00:00:00Z"``). Defaults to ``"-1h"``.
+            end_time: End time as a PI time string. ``"*"`` means now.
+                Defaults to ``"*"``.
+            summary_type: Comma-separated list of summary types to request.
+                Valid values are ``"All"``, ``"Total"``, ``"Average"``,
+                ``"Minimum"``, ``"Maximum"``, ``"Range"``, ``"StdDev"``,
+                ``"PopulationStdDev"``, ``"Count"``, ``"PercentGood"``.
+                Defaults to ``"All"``.
+            calculation_basis: How values are weighted when computing the
+                summary. One of ``"TimeWeighted"`` (default) or
+                ``"EventWeighted"``.
+
+        Returns:
+            A :class:`StreamSummary` whose ``items`` list contains one
+            :class:`StreamSummaryValue` per statistic type requested.
+            Use :meth:`StreamSummary.as_dict` for a compact ``{type: value}``
+            view.
+
+        Raises:
+            NotFoundError: If no stream with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = self._client.get(
+            f"/streams/{quote(web_id, safe='')}/summary",
+            params={
+                "startTime": start_time,
+                "endTime": end_time,
+                "summaryType": summary_type,
+                "calculationBasis": calculation_basis,
+            },
+        )
+        raise_for_response(resp)
+        return StreamSummary.model_validate(resp.json())
 
     def update_value(
         self,
@@ -262,6 +314,51 @@ class AsyncStreamsMixin:
         )
         await raise_for_response_async(resp)
         return StreamValues.model_validate(resp.json())
+
+    async def get_summary(
+        self,
+        web_id: str,
+        start_time: str = "-1h",
+        end_time: str = "*",
+        summary_type: str = "All",
+        calculation_basis: str = "TimeWeighted",
+    ) -> StreamSummary:
+        """Read summary statistics for a stream over a time range.
+
+        Calls ``GET /streams/{webId}/summary`` and returns the summary
+        statistics computed by the PI server.
+
+        Args:
+            web_id: WebID of the PI Point or AF attribute.
+            start_time: Start time as a PI time string. Defaults to ``"-1h"``.
+            end_time: End time as a PI time string. Defaults to ``"*"`` (now).
+            summary_type: Comma-separated list of summary types to request.
+                Defaults to ``"All"``.
+            calculation_basis: ``"TimeWeighted"`` (default) or
+                ``"EventWeighted"``.
+
+        Returns:
+            A :class:`StreamSummary` whose ``items`` list contains one
+            :class:`StreamSummaryValue` per statistic type requested.
+            Use :meth:`StreamSummary.as_dict` for a compact ``{type: value}``
+            view.
+
+        Raises:
+            NotFoundError: If no stream with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = await self._client.get(
+            f"/streams/{quote(web_id, safe='')}/summary",
+            params={
+                "startTime": start_time,
+                "endTime": end_time,
+                "summaryType": summary_type,
+                "calculationBasis": calculation_basis,
+            },
+        )
+        await raise_for_response_async(resp)
+        return StreamSummary.model_validate(resp.json())
 
     async def update_value(
         self,

@@ -114,6 +114,63 @@ class PIDataServer(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+class StreamSummaryValue(BaseModel):
+    """A single summary statistic within a stream summary response.
+
+    PI Web API wraps each summary value in an object containing the
+    calculated value and the time range over which it was computed.
+    """
+
+    type: str = Field(alias="Type", default="")
+    value: StreamValue | None = Field(alias="Value", default=None)
+
+    model_config = {"populate_by_name": True}
+
+
+class StreamSummary(BaseModel):
+    """Summary statistics for a single PI stream over a time range.
+
+    Returned by ``GET /streams/{webId}/summary``.  The ``items`` list
+    contains one :class:`StreamSummaryValue` per requested statistic type
+    (e.g. ``"Minimum"``, ``"Maximum"``, ``"Mean"``, ``"StdDev"``,
+    ``"Count"``, ``"PercentGood"``).
+    """
+
+    web_id: str = Field(alias="WebId", default="")
+    name: str = Field(alias="Name", default="")
+    path: str = Field(alias="Path", default="")
+    items: list[StreamSummaryValue] = Field(alias="Items", default_factory=list)
+    links: dict[str, str] = Field(alias="Links", default_factory=dict)
+
+    model_config = {"populate_by_name": True}
+
+    def as_dict(self) -> dict[str, Any]:
+        """Return summary statistics as a plain ``{type: value}`` mapping.
+
+        Returns:
+            Dict mapping summary type name (e.g. ``"Minimum"``) to the raw
+            value from the nested :class:`StreamValue`, or ``None`` if the
+            statistic value was not returned by the server.
+        """
+        return {
+            item.type: (item.value.value if item.value is not None else None)
+            for item in self.items
+        }
+
+
+class StreamSetItem(BaseModel):
+    """A single stream's data within a streamset response."""
+
+    web_id: str = Field(alias="WebId", default="")
+    name: str = Field(alias="Name", default="")
+    path: str = Field(alias="Path", default="")
+    items: list[StreamValue] = Field(alias="Items", default_factory=list)
+    units_abbreviation: str = Field(alias="UnitsAbbreviation", default="")
+    links: dict[str, str] = Field(alias="Links", default_factory=dict)
+
+    model_config = {"populate_by_name": True}
+
+
 class BatchResponseItem(BaseModel):
     """A single response within a PI Web API batch result."""
 

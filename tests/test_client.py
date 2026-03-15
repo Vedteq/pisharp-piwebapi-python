@@ -202,3 +202,42 @@ async def test_async_client_context_manager() -> None:
 
     async with AsyncPIWebAPIClient(BASE, username="user", password="pass") as client:
         assert client._client is not None
+
+
+# ===========================================================================
+# Accessor exposure — streamsets
+# ===========================================================================
+
+
+def test_sync_client_exposes_streamsets() -> None:
+    """The sync client exposes a .streamsets accessor with the expected methods."""
+    with PIWebAPIClient(BASE, username="user", password="pass") as client:
+        assert hasattr(client.streamsets, "get_values")
+        assert hasattr(client.streamsets, "get_recorded_ad_hoc")
+        assert hasattr(client.streamsets, "get_interpolated_ad_hoc")
+        assert hasattr(client.streamsets, "get_recorded_by_element")
+
+
+def test_async_client_exposes_streamsets() -> None:
+    """The async client exposes a .streamsets accessor with the expected methods."""
+    client = AsyncPIWebAPIClient(BASE, username="user", password="pass")
+    assert hasattr(client.streamsets, "get_values")
+    assert hasattr(client.streamsets, "get_recorded_ad_hoc")
+    assert hasattr(client.streamsets, "get_interpolated_ad_hoc")
+    assert hasattr(client.streamsets, "get_recorded_by_element")
+
+
+# ===========================================================================
+# NTLM auth_method — falls back gracefully when httpx-ntlm is absent
+# ===========================================================================
+
+
+def test_sync_client_ntlm_auth_method_raises_import_error() -> None:
+    """PIWebAPIClient with auth_method='ntlm' raises ImportError if httpx-ntlm is absent."""
+    try:
+        PIWebAPIClient(BASE, username="user", password="pass", auth_method="ntlm")
+        # If httpx-ntlm is installed in CI the client builds successfully — skip.
+        pytest.skip("httpx-ntlm is installed")
+    except ImportError as e:
+        assert "ntlm" in str(e).lower()
+        assert "pip install" in str(e)

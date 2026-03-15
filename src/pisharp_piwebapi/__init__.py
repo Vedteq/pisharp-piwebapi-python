@@ -1,6 +1,7 @@
 """pisharp-piwebapi — A modern Python SDK for PI Web API."""
 
 from pisharp_piwebapi._pandas import stream_values_to_dataframe
+from pisharp_piwebapi.auth import basic_auth, kerberos_auth, ntlm_auth
 from pisharp_piwebapi.client import AsyncPIWebAPIClient, PIWebAPIClient
 from pisharp_piwebapi.exceptions import (
     AuthenticationError,
@@ -16,6 +17,9 @@ from pisharp_piwebapi.models import (
     PIDataServer,
     PIElement,
     PIPoint,
+    StreamSetItem,
+    StreamSummary,
+    StreamSummaryValue,
     StreamValue,
     StreamValues,
 )
@@ -36,7 +40,13 @@ __all__ = [
     "PIAttribute",
     "StreamValue",
     "StreamValues",
+    "StreamSummary",
+    "StreamSummaryValue",
+    "StreamSetItem",
     "stream_values_to_dataframe",
+    "basic_auth",
+    "kerberos_auth",
+    "ntlm_auth",
 ]
 
 __version__ = "0.1.0"
