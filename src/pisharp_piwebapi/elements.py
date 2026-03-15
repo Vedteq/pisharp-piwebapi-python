@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from urllib.parse import quote
 
 from pisharp_piwebapi.exceptions import raise_for_response, raise_for_response_async
-from pisharp_piwebapi.models import PIAttribute, PIDatabase, PIElement
+from pisharp_piwebapi.models import PIAssetServer, PIAttribute, PIDatabase, PIElement
 
 if TYPE_CHECKING:
     import httpx
@@ -16,6 +16,44 @@ class ElementsMixin:
     """Methods for AF element and database lookup. Mixed into the sync client class."""
 
     _client: httpx.Client
+
+    def get_asset_servers(self) -> list[PIAssetServer]:
+        """Return all PI Asset Servers (AF Servers) registered with PI Web API.
+
+        This is the natural starting point for AF hierarchy traversal.  Call
+        :meth:`get_databases` with the :attr:`~PIAssetServer.web_id` of a
+        returned server to list the AF databases hosted on it.
+
+        Returns:
+            List of :class:`PIAssetServer` objects.
+
+        Raises:
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = self._client.get("/assetservers")
+        raise_for_response(resp)
+        data = resp.json()
+        items = data.get("Items", data) if isinstance(data, dict) else data
+        return [PIAssetServer.model_validate(item) for item in items]
+
+    def get_asset_server(self, web_id: str) -> PIAssetServer:
+        """Return a single PI Asset Server by its WebID.
+
+        Args:
+            web_id: WebID of the PI Asset Server.
+
+        Returns:
+            A :class:`PIAssetServer` populated from the API response.
+
+        Raises:
+            NotFoundError: If no asset server with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = self._client.get(f"/assetservers/{quote(web_id, safe='')}")
+        raise_for_response(resp)
+        return PIAssetServer.model_validate(resp.json())
 
     def get_databases(self, asset_server_web_id: str) -> list[PIDatabase]:
         """Return all AF databases on an Asset Server.
@@ -226,6 +264,40 @@ class AsyncElementsMixin:
     """Async methods for AF element and database lookup. Mixed into the async client class."""
 
     _client: httpx.AsyncClient
+
+    async def get_asset_servers(self) -> list[PIAssetServer]:
+        """Return all PI Asset Servers (AF Servers) registered with PI Web API.
+
+        Returns:
+            List of :class:`PIAssetServer` objects.
+
+        Raises:
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = await self._client.get("/assetservers")
+        await raise_for_response_async(resp)
+        data = resp.json()
+        items = data.get("Items", data) if isinstance(data, dict) else data
+        return [PIAssetServer.model_validate(item) for item in items]
+
+    async def get_asset_server(self, web_id: str) -> PIAssetServer:
+        """Return a single PI Asset Server by its WebID.
+
+        Args:
+            web_id: WebID of the PI Asset Server.
+
+        Returns:
+            A :class:`PIAssetServer` populated from the API response.
+
+        Raises:
+            NotFoundError: If no asset server with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = await self._client.get(f"/assetservers/{quote(web_id, safe='')}")
+        await raise_for_response_async(resp)
+        return PIAssetServer.model_validate(resp.json())
 
     async def get_databases(self, asset_server_web_id: str) -> list[PIDatabase]:
         """Return all AF databases on an Asset Server.

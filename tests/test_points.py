@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import httpx
 import pytest
 import respx
@@ -459,3 +461,243 @@ async def test_async_get_data_server_not_found_raises() -> None:
         pts = _AsyncPoints(client)
         with pytest.raises(NotFoundError):
             await pts.get_data_server(DS_WEB_ID)
+
+
+# ===========================================================================
+# Sync — create_point
+# ===========================================================================
+
+
+@respx.mock
+def test_create_point_happy_path() -> None:
+    """create_point POSTs to /dataservers/{webId}/points and returns a PIPoint."""
+    route = respx.post(f"{BASE}/dataservers/{DS_WEB_ID}/points").mock(
+        return_value=httpx.Response(201, json=POINT_PAYLOAD)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        pts = _SyncPoints(client)
+        point = pts.create_point(DS_WEB_ID, "sinusoid", engineering_units="degC")
+
+    assert isinstance(point, PIPoint)
+    assert point.name == "sinusoid"
+    assert point.web_id == "P0ABC123"
+    assert route.called
+
+
+@respx.mock
+def test_create_point_sends_correct_body() -> None:
+    """create_point includes all standard fields in the JSON body."""
+    route = respx.post(f"{BASE}/dataservers/{DS_WEB_ID}/points").mock(
+        return_value=httpx.Response(201, json=POINT_PAYLOAD)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        pts = _SyncPoints(client)
+        pts.create_point(
+            DS_WEB_ID,
+            "MyTag",
+            point_type="Float64",
+            point_class="classic",
+            descriptor="A test tag",
+            engineering_units="m/s",
+            future=False,
+        )
+
+    body = json.loads(route.calls.last.request.content)
+    assert body["Name"] == "MyTag"
+    assert body["PointType"] == "Float64"
+    assert body["Descriptor"] == "A test tag"
+    assert body["EngineeringUnits"] == "m/s"
+    assert body["Future"] is False
+
+
+@respx.mock
+def test_create_point_with_extra_fields() -> None:
+    """create_point merges extra_fields into the request body."""
+    route = respx.post(f"{BASE}/dataservers/{DS_WEB_ID}/points").mock(
+        return_value=httpx.Response(201, json=POINT_PAYLOAD)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        pts = _SyncPoints(client)
+        pts.create_point(DS_WEB_ID, "SomeTag", extra_fields={"Compressing": True})
+
+    body = json.loads(route.calls.last.request.content)
+    assert body["Compressing"] is True
+
+
+@respx.mock
+def test_create_point_auth_error_raises() -> None:
+    """create_point raises AuthenticationError on 401."""
+    respx.post(f"{BASE}/dataservers/{DS_WEB_ID}/points").mock(
+        return_value=httpx.Response(401, json={"Message": "Unauthorized"})
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        pts = _SyncPoints(client)
+        with pytest.raises(AuthenticationError) as exc_info:
+            pts.create_point(DS_WEB_ID, "BadTag")
+
+    assert exc_info.value.status_code == 401
+
+
+@respx.mock
+def test_create_point_conflict_raises() -> None:
+    """create_point raises PIWebAPIError when the server returns 409 (tag exists)."""
+    from pisharp_piwebapi.exceptions import PIWebAPIError
+
+    respx.post(f"{BASE}/dataservers/{DS_WEB_ID}/points").mock(
+        return_value=httpx.Response(409, json={"Message": "Tag already exists"})
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        pts = _SyncPoints(client)
+        with pytest.raises(PIWebAPIError) as exc_info:
+            pts.create_point(DS_WEB_ID, "sinusoid")
+
+    assert exc_info.value.status_code == 409
+    assert "Tag already exists" in str(exc_info.value)
+
+
+# ===========================================================================
+# Sync — delete_point
+# ===========================================================================
+
+
+@respx.mock
+def test_delete_point_happy_path() -> None:
+    """delete_point issues DELETE and returns None on 204."""
+    route = respx.delete(f"{BASE}/points/P0ABC123").mock(
+        return_value=httpx.Response(204)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        pts = _SyncPoints(client)
+        result = pts.delete_point("P0ABC123")
+
+    assert result is None
+    assert route.called
+
+
+@respx.mock
+def test_delete_point_not_found_raises() -> None:
+    """delete_point raises NotFoundError on 404."""
+    respx.delete(f"{BASE}/points/MISSING").mock(
+        return_value=httpx.Response(404, json={"Message": "Point not found"})
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        pts = _SyncPoints(client)
+        with pytest.raises(NotFoundError) as exc_info:
+            pts.delete_point("MISSING")
+
+    assert exc_info.value.status_code == 404
+    assert "Point not found" in str(exc_info.value)
+
+
+@respx.mock
+def test_delete_point_auth_error_raises() -> None:
+    """delete_point raises AuthenticationError on 403."""
+    respx.delete(f"{BASE}/points/P0ABC123").mock(
+        return_value=httpx.Response(403, json={"Message": "Forbidden"})
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        pts = _SyncPoints(client)
+        with pytest.raises(AuthenticationError) as exc_info:
+            pts.delete_point("P0ABC123")
+
+    assert exc_info.value.status_code == 403
+
+
+# ===========================================================================
+# Async — create_point
+# ===========================================================================
+
+
+@respx.mock
+async def test_async_create_point_happy_path() -> None:
+    """Async create_point returns a PIPoint on 201."""
+    respx.post(f"{BASE}/dataservers/{DS_WEB_ID}/points").mock(
+        return_value=httpx.Response(201, json=POINT_PAYLOAD)
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        pts = _AsyncPoints(client)
+        point = await pts.create_point(DS_WEB_ID, "sinusoid")
+
+    assert isinstance(point, PIPoint)
+    assert point.name == "sinusoid"
+
+
+@respx.mock
+async def test_async_create_point_sends_correct_body() -> None:
+    """Async create_point sends the full body including all standard fields."""
+    route = respx.post(f"{BASE}/dataservers/{DS_WEB_ID}/points").mock(
+        return_value=httpx.Response(201, json=POINT_PAYLOAD)
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        pts = _AsyncPoints(client)
+        await pts.create_point(
+            DS_WEB_ID,
+            "AsyncTag",
+            point_type="Int32",
+            engineering_units="rpm",
+        )
+
+    body = json.loads(route.calls.last.request.content)
+    assert body["Name"] == "AsyncTag"
+    assert body["PointType"] == "Int32"
+    assert body["EngineeringUnits"] == "rpm"
+
+
+@respx.mock
+async def test_async_create_point_server_error_raises() -> None:
+    """Async create_point raises ServerError on 500."""
+    respx.post(f"{BASE}/dataservers/{DS_WEB_ID}/points").mock(
+        return_value=httpx.Response(500, json={"Message": "Internal error"})
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        pts = _AsyncPoints(client)
+        with pytest.raises(ServerError) as exc_info:
+            await pts.create_point(DS_WEB_ID, "FailTag")
+
+    assert exc_info.value.status_code == 500
+
+
+# ===========================================================================
+# Async — delete_point
+# ===========================================================================
+
+
+@respx.mock
+async def test_async_delete_point_happy_path() -> None:
+    """Async delete_point issues DELETE and returns None on 204."""
+    route = respx.delete(f"{BASE}/points/P0ABC123").mock(
+        return_value=httpx.Response(204)
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        pts = _AsyncPoints(client)
+        result = await pts.delete_point("P0ABC123")
+
+    assert result is None
+    assert route.called
+
+
+@respx.mock
+async def test_async_delete_point_not_found_raises() -> None:
+    """Async delete_point raises NotFoundError on 404."""
+    respx.delete(f"{BASE}/points/NOPE").mock(
+        return_value=httpx.Response(404, json={"Message": "Point not found"})
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        pts = _AsyncPoints(client)
+        with pytest.raises(NotFoundError) as exc_info:
+            await pts.delete_point("NOPE")
+
+    assert exc_info.value.status_code == 404

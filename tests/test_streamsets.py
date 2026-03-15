@@ -409,3 +409,184 @@ async def test_async_get_recorded_by_element_404_raises() -> None:
             await ss.get_recorded_by_element(ELEM_WEB_ID)
 
     assert exc_info.value.status_code == 404
+
+
+# ===========================================================================
+# Sync — get_interpolated_by_element
+# ===========================================================================
+
+# Reuse RECORDED_PAYLOAD here — interpolated responses use the same shape.
+INTERPOLATED_BY_ELEM_PAYLOAD = {
+    "Items": [
+        {
+            "WebId": WEB_ID_A,
+            "Name": "Temperature",
+            "Path": "",
+            "Items": [
+                {"Timestamp": "2024-06-01T11:00:00Z", "Value": 72.1, "Good": True},
+                {"Timestamp": "2024-06-01T11:10:00Z", "Value": 72.4, "Good": True},
+                {"Timestamp": "2024-06-01T11:20:00Z", "Value": 72.8, "Good": True},
+            ],
+            "UnitsAbbreviation": "degF",
+            "Links": {},
+        },
+        {
+            "WebId": WEB_ID_B,
+            "Name": "Pressure",
+            "Path": "",
+            "Items": [
+                {"Timestamp": "2024-06-01T11:00:00Z", "Value": 14.7, "Good": True},
+                {"Timestamp": "2024-06-01T11:10:00Z", "Value": 14.8, "Good": True},
+            ],
+            "UnitsAbbreviation": "psi",
+            "Links": {},
+        },
+    ]
+}
+
+
+@respx.mock
+def test_get_interpolated_by_element_happy_path() -> None:
+    """get_interpolated_by_element returns a StreamSetItem per attribute."""
+    respx.get(f"{BASE}/streamsets/{ELEM_WEB_ID}/interpolated").mock(
+        return_value=httpx.Response(200, json=INTERPOLATED_BY_ELEM_PAYLOAD)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        ss = _SyncStreamSets(client)
+        result = ss.get_interpolated_by_element(ELEM_WEB_ID)
+
+    assert len(result) == 2
+    assert all(isinstance(item, StreamSetItem) for item in result)
+    assert result[0].web_id == WEB_ID_A
+    assert len(result[0].items) == 3
+    assert result[1].web_id == WEB_ID_B
+    assert len(result[1].items) == 2
+
+
+@respx.mock
+def test_get_interpolated_by_element_passes_params() -> None:
+    """get_interpolated_by_element forwards startTime, endTime, interval, and nameFilter."""
+    route = respx.get(f"{BASE}/streamsets/{ELEM_WEB_ID}/interpolated").mock(
+        return_value=httpx.Response(200, json=INTERPOLATED_BY_ELEM_PAYLOAD)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        ss = _SyncStreamSets(client)
+        ss.get_interpolated_by_element(
+            ELEM_WEB_ID,
+            start_time="-4h",
+            end_time="*",
+            interval="5m",
+            name_filter="Temp*",
+        )
+
+    raw_query = route.calls.last.request.url.query.decode()
+    assert "startTime=-4h" in raw_query
+    assert "interval=5m" in raw_query
+    assert "nameFilter=Temp" in raw_query
+
+
+@respx.mock
+def test_get_interpolated_by_element_404_raises() -> None:
+    """get_interpolated_by_element raises NotFoundError on 404."""
+    respx.get(f"{BASE}/streamsets/{ELEM_WEB_ID}/interpolated").mock(
+        return_value=httpx.Response(404, json={"Message": "Element not found"})
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        ss = _SyncStreamSets(client)
+        with pytest.raises(NotFoundError) as exc_info:
+            ss.get_interpolated_by_element(ELEM_WEB_ID)
+
+    assert exc_info.value.status_code == 404
+    assert "Element not found" in str(exc_info.value)
+
+
+@respx.mock
+def test_get_interpolated_by_element_server_error_raises() -> None:
+    """get_interpolated_by_element raises ServerError on 500."""
+    respx.get(f"{BASE}/streamsets/{ELEM_WEB_ID}/interpolated").mock(
+        return_value=httpx.Response(500, json={"Message": "Internal error"})
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        ss = _SyncStreamSets(client)
+        with pytest.raises(ServerError) as exc_info:
+            ss.get_interpolated_by_element(ELEM_WEB_ID)
+
+    assert exc_info.value.status_code == 500
+
+
+# ===========================================================================
+# Async — get_interpolated_by_element
+# ===========================================================================
+
+
+@respx.mock
+async def test_async_get_interpolated_by_element_happy_path() -> None:
+    """Async get_interpolated_by_element returns a StreamSetItem per attribute."""
+    respx.get(f"{BASE}/streamsets/{ELEM_WEB_ID}/interpolated").mock(
+        return_value=httpx.Response(200, json=INTERPOLATED_BY_ELEM_PAYLOAD)
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        ss = _AsyncStreamSets(client)
+        result = await ss.get_interpolated_by_element(ELEM_WEB_ID)
+
+    assert len(result) == 2
+    assert all(isinstance(item, StreamSetItem) for item in result)
+    assert result[0].web_id == WEB_ID_A
+    assert result[1].web_id == WEB_ID_B
+
+
+@respx.mock
+async def test_async_get_interpolated_by_element_passes_params() -> None:
+    """Async get_interpolated_by_element forwards all query parameters."""
+    route = respx.get(f"{BASE}/streamsets/{ELEM_WEB_ID}/interpolated").mock(
+        return_value=httpx.Response(200, json=INTERPOLATED_BY_ELEM_PAYLOAD)
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        ss = _AsyncStreamSets(client)
+        await ss.get_interpolated_by_element(
+            ELEM_WEB_ID,
+            start_time="-2h",
+            interval="15m",
+            name_filter="Press*",
+        )
+
+    raw_query = route.calls.last.request.url.query.decode()
+    assert "startTime=-2h" in raw_query
+    assert "interval=15m" in raw_query
+    assert "nameFilter=Press" in raw_query
+
+
+@respx.mock
+async def test_async_get_interpolated_by_element_404_raises() -> None:
+    """Async get_interpolated_by_element raises NotFoundError on 404."""
+    respx.get(f"{BASE}/streamsets/{ELEM_WEB_ID}/interpolated").mock(
+        return_value=httpx.Response(404, json={"Message": "Element not found"})
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        ss = _AsyncStreamSets(client)
+        with pytest.raises(NotFoundError) as exc_info:
+            await ss.get_interpolated_by_element(ELEM_WEB_ID)
+
+    assert exc_info.value.status_code == 404
+
+
+@respx.mock
+async def test_async_get_interpolated_by_element_server_error_raises() -> None:
+    """Async get_interpolated_by_element raises ServerError on 503."""
+    respx.get(f"{BASE}/streamsets/{ELEM_WEB_ID}/interpolated").mock(
+        return_value=httpx.Response(503, json={"Message": "Service unavailable"})
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        ss = _AsyncStreamSets(client)
+        with pytest.raises(ServerError) as exc_info:
+            await ss.get_interpolated_by_element(ELEM_WEB_ID)
+
+    assert exc_info.value.status_code == 503

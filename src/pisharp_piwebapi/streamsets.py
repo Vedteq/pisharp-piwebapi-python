@@ -210,6 +210,54 @@ class StreamSetsMixin:
         raise_for_response(resp)
         return _parse_streamset_items(resp.json())
 
+    def get_interpolated_by_element(
+        self,
+        element_web_id: str,
+        start_time: str = "-1h",
+        end_time: str = "*",
+        interval: str = "10m",
+        name_filter: str = "*",
+    ) -> list[StreamSetItem]:
+        """Read server-side interpolated values for all attributes of an AF element.
+
+        Calls ``GET /streamsets/{elementWebId}/interpolated``.  PI Web API
+        computes values at regular ``interval`` steps between ``start_time``
+        and ``end_time`` for every attribute on the element that matches
+        ``name_filter``.
+
+        Args:
+            element_web_id: WebID of the AF element.
+            start_time: Start time as a PI time string (e.g. ``"-4h"``,
+                ``"2024-01-01T00:00:00Z"``). Defaults to ``"-1h"``.
+            end_time: End time as a PI time string. ``"*"`` means now.
+                Defaults to ``"*"``.
+            interval: Interpolation interval (e.g. ``"10m"``, ``"1h"``).
+                Defaults to ``"10m"``.
+            name_filter: Attribute name pattern supporting wildcards.
+                Defaults to ``"*"`` (all attributes).
+
+        Returns:
+            List of :class:`StreamSetItem` objects, one per attribute.  Each
+            item's ``items`` list contains the interpolated values for that
+            attribute over the requested time range.
+
+        Raises:
+            NotFoundError: If the element WebID is not found.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = self._client.get(
+            f"/streamsets/{quote(element_web_id, safe='')}/interpolated",
+            params={
+                "startTime": start_time,
+                "endTime": end_time,
+                "interval": interval,
+                "nameFilter": name_filter,
+            },
+        )
+        raise_for_response(resp)
+        return _parse_streamset_items(resp.json())
+
 
 class AsyncStreamSetsMixin:
     """Async methods for multi-stream reads via ``/streamsets``.
@@ -343,6 +391,47 @@ class AsyncStreamSetsMixin:
                 "startTime": start_time,
                 "endTime": end_time,
                 "maxCount": max_count,
+                "nameFilter": name_filter,
+            },
+        )
+        await raise_for_response_async(resp)
+        return _parse_streamset_items(resp.json())
+
+    async def get_interpolated_by_element(
+        self,
+        element_web_id: str,
+        start_time: str = "-1h",
+        end_time: str = "*",
+        interval: str = "10m",
+        name_filter: str = "*",
+    ) -> list[StreamSetItem]:
+        """Read server-side interpolated values for all attributes of an AF element.
+
+        Calls ``GET /streamsets/{elementWebId}/interpolated``.
+
+        Args:
+            element_web_id: WebID of the AF element.
+            start_time: Start time as a PI time string. Defaults to ``"-1h"``.
+            end_time: End time as a PI time string. Defaults to ``"*"`` (now).
+            interval: Interpolation interval (e.g. ``"10m"``, ``"1h"``).
+                Defaults to ``"10m"``.
+            name_filter: Attribute name pattern supporting wildcards.
+                Defaults to ``"*"`` (all attributes).
+
+        Returns:
+            List of :class:`StreamSetItem` objects, one per attribute.
+
+        Raises:
+            NotFoundError: If the element WebID is not found.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = await self._client.get(
+            f"/streamsets/{quote(element_web_id, safe='')}/interpolated",
+            params={
+                "startTime": start_time,
+                "endTime": end_time,
+                "interval": interval,
                 "nameFilter": name_filter,
             },
         )

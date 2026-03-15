@@ -8,7 +8,7 @@ import respx
 
 from pisharp_piwebapi.elements import AsyncElementsMixin, ElementsMixin
 from pisharp_piwebapi.exceptions import AuthenticationError, NotFoundError, ServerError
-from pisharp_piwebapi.models import PIAttribute, PIDatabase, PIElement
+from pisharp_piwebapi.models import PIAssetServer, PIAttribute, PIDatabase, PIElement
 
 BASE = "https://piserver/piwebapi"
 AS_WEB_ID = "A0AbEDAssetServer"
@@ -667,3 +667,192 @@ async def test_async_get_attribute_auth_error_raises() -> None:
         el = _AsyncElements(client)
         with pytest.raises(AuthenticationError):
             await el.get_attribute(ATTR_WEB_ID)
+
+
+# ---------------------------------------------------------------------------
+# Shared asset server payload
+# ---------------------------------------------------------------------------
+
+ASSET_SERVER_PAYLOAD = {
+    "WebId": AS_WEB_ID,
+    "Name": "AFServer01",
+    "Path": "\\\\AFServer01",
+    "IsConnected": True,
+    "ServerVersion": "2.10.7.5579",
+    "Links": {"Self": f"{BASE}/assetservers/{AS_WEB_ID}"},
+}
+
+ASSET_SERVERS_LIST = {"Items": [ASSET_SERVER_PAYLOAD], "Links": {}}
+
+
+# ===========================================================================
+# Sync — get_asset_servers
+# ===========================================================================
+
+
+@respx.mock
+def test_get_asset_servers_happy_path() -> None:
+    """get_asset_servers returns a list of PIAssetServer objects."""
+    respx.get(f"{BASE}/assetservers").mock(
+        return_value=httpx.Response(200, json=ASSET_SERVERS_LIST)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        el = _SyncElements(client)
+        servers = el.get_asset_servers()
+
+    assert len(servers) == 1
+    assert isinstance(servers[0], PIAssetServer)
+    assert servers[0].web_id == AS_WEB_ID
+    assert servers[0].name == "AFServer01"
+    assert servers[0].is_connected is True
+
+
+@respx.mock
+def test_get_asset_servers_auth_error_raises() -> None:
+    """get_asset_servers raises AuthenticationError on 401."""
+    respx.get(f"{BASE}/assetservers").mock(
+        return_value=httpx.Response(401, json={"Message": "Unauthorized"})
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        el = _SyncElements(client)
+        with pytest.raises(AuthenticationError) as exc_info:
+            el.get_asset_servers()
+
+    assert exc_info.value.status_code == 401
+
+
+@respx.mock
+def test_get_asset_servers_server_error_raises() -> None:
+    """get_asset_servers raises ServerError on 500."""
+    respx.get(f"{BASE}/assetservers").mock(
+        return_value=httpx.Response(500, json={"Message": "Internal error"})
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        el = _SyncElements(client)
+        with pytest.raises(ServerError) as exc_info:
+            el.get_asset_servers()
+
+    assert exc_info.value.status_code == 500
+
+
+@respx.mock
+def test_get_asset_servers_empty_list() -> None:
+    """get_asset_servers returns an empty list when no servers are registered."""
+    respx.get(f"{BASE}/assetservers").mock(
+        return_value=httpx.Response(200, json={"Items": [], "Links": {}})
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        el = _SyncElements(client)
+        servers = el.get_asset_servers()
+
+    assert servers == []
+
+
+# ===========================================================================
+# Sync — get_asset_server
+# ===========================================================================
+
+
+@respx.mock
+def test_get_asset_server_happy_path() -> None:
+    """get_asset_server returns a single PIAssetServer by WebID."""
+    respx.get(f"{BASE}/assetservers/{AS_WEB_ID}").mock(
+        return_value=httpx.Response(200, json=ASSET_SERVER_PAYLOAD)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        el = _SyncElements(client)
+        server = el.get_asset_server(AS_WEB_ID)
+
+    assert isinstance(server, PIAssetServer)
+    assert server.web_id == AS_WEB_ID
+    assert server.server_version == "2.10.7.5579"
+
+
+@respx.mock
+def test_get_asset_server_not_found_raises() -> None:
+    """get_asset_server raises NotFoundError on 404."""
+    respx.get(f"{BASE}/assetservers/{AS_WEB_ID}").mock(
+        return_value=httpx.Response(404, json={"Message": "Asset server not found"})
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        el = _SyncElements(client)
+        with pytest.raises(NotFoundError) as exc_info:
+            el.get_asset_server(AS_WEB_ID)
+
+    assert exc_info.value.status_code == 404
+    assert "Asset server not found" in str(exc_info.value)
+
+
+# ===========================================================================
+# Async — get_asset_servers
+# ===========================================================================
+
+
+@respx.mock
+async def test_async_get_asset_servers_happy_path() -> None:
+    """Async get_asset_servers returns a list of PIAssetServer objects."""
+    respx.get(f"{BASE}/assetservers").mock(
+        return_value=httpx.Response(200, json=ASSET_SERVERS_LIST)
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        el = _AsyncElements(client)
+        servers = await el.get_asset_servers()
+
+    assert len(servers) == 1
+    assert servers[0].name == "AFServer01"
+    assert servers[0].is_connected is True
+
+
+@respx.mock
+async def test_async_get_asset_servers_auth_error_raises() -> None:
+    """Async get_asset_servers raises AuthenticationError on 401."""
+    respx.get(f"{BASE}/assetservers").mock(
+        return_value=httpx.Response(401, json={"Message": "Unauthorized"})
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        el = _AsyncElements(client)
+        with pytest.raises(AuthenticationError):
+            await el.get_asset_servers()
+
+
+# ===========================================================================
+# Async — get_asset_server
+# ===========================================================================
+
+
+@respx.mock
+async def test_async_get_asset_server_happy_path() -> None:
+    """Async get_asset_server returns a single PIAssetServer by WebID."""
+    respx.get(f"{BASE}/assetservers/{AS_WEB_ID}").mock(
+        return_value=httpx.Response(200, json=ASSET_SERVER_PAYLOAD)
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        el = _AsyncElements(client)
+        server = await el.get_asset_server(AS_WEB_ID)
+
+    assert isinstance(server, PIAssetServer)
+    assert server.web_id == AS_WEB_ID
+
+
+@respx.mock
+async def test_async_get_asset_server_not_found_raises() -> None:
+    """Async get_asset_server raises NotFoundError on 404."""
+    respx.get(f"{BASE}/assetservers/{AS_WEB_ID}").mock(
+        return_value=httpx.Response(404, json={"Message": "Not found"})
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        el = _AsyncElements(client)
+        with pytest.raises(NotFoundError) as exc_info:
+            await el.get_asset_server(AS_WEB_ID)
+
+    assert exc_info.value.status_code == 404

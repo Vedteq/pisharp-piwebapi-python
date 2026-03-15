@@ -114,6 +114,24 @@ class PIDataServer(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+class PIAssetServer(BaseModel):
+    """Represents a PI Asset Server (AF Server).
+
+    Asset servers host AF databases.  Use :meth:`ElementsMixin.get_asset_servers`
+    to enumerate them, then pass :attr:`web_id` to
+    :meth:`ElementsMixin.get_databases` to list the AF databases on that server.
+    """
+
+    web_id: str = Field(alias="WebId")
+    name: str = Field(alias="Name")
+    path: str = Field(alias="Path", default="")
+    is_connected: bool = Field(alias="IsConnected", default=False)
+    server_version: str = Field(alias="ServerVersion", default="")
+    links: dict[str, str] = Field(alias="Links", default_factory=dict)
+
+    model_config = {"populate_by_name": True}
+
+
 class StreamSummaryValue(BaseModel):
     """A single summary statistic within a stream summary response.
 

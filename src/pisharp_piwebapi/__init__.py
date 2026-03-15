@@ -12,6 +12,7 @@ from pisharp_piwebapi.exceptions import (
     ServerError,
 )
 from pisharp_piwebapi.models import (
+    PIAssetServer,
     PIAttribute,
     PIDatabase,
     PIDataServer,
@@ -35,6 +36,7 @@ __all__ = [
     "ServerError",
     "PIPoint",
     "PIDataServer",
+    "PIAssetServer",
     "PIDatabase",
     "PIElement",
     "PIAttribute",

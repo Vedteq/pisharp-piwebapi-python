@@ -1,8 +1,8 @@
-"""Point lookup operations for PI Web API."""
+"""Point lookup and management operations for PI Web API."""
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from urllib.parse import quote
 
 from pisharp_piwebapi.exceptions import raise_for_response, raise_for_response_async
@@ -124,6 +124,82 @@ class PointsMixin:
         raise_for_response(resp)
         return PIDataServer.model_validate(resp.json())
 
+    def create_point(
+        self,
+        data_server_web_id: str,
+        name: str,
+        *,
+        point_type: str = "Float32",
+        point_class: str = "classic",
+        descriptor: str = "",
+        engineering_units: str = "",
+        future: bool = False,
+        extra_fields: dict[str, Any] | None = None,
+    ) -> PIPoint:
+        """Create a new PI Point on a PI Data Server.
+
+        Calls ``POST /dataservers/{webId}/points``.
+
+        Args:
+            data_server_web_id: WebID of the PI Data Server that will own the
+                new point.
+            name: Tag name for the new PI Point (e.g. ``"MyTag"``).
+            point_type: PI Point type string — one of ``"Float32"``
+                (default), ``"Float64"``, ``"Int32"``, ``"Int64"``,
+                ``"String"``, ``"Digital"``, ``"Timestamp"``, ``"Blob"``.
+            point_class: PI Point class. Defaults to ``"classic"``.
+            descriptor: Optional free-text description shown in PI clients.
+            engineering_units: EU label (e.g. ``"degC"``).
+            future: Whether the point accepts future-dated values.
+                Defaults to ``False``.
+            extra_fields: Additional key-value pairs merged into the request
+                body as-is, for any server-specific attributes not covered by
+                the standard parameters.
+
+        Returns:
+            A :class:`PIPoint` populated from the server's response body
+            (PI Web API returns the created point with its assigned WebID).
+
+        Raises:
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: If the server returns any other non-2xx status
+                (e.g. 409 if a point with that name already exists).
+        """
+        body: dict[str, Any] = {
+            "Name": name,
+            "PointType": point_type,
+            "PointClass": point_class,
+            "Descriptor": descriptor,
+            "EngineeringUnits": engineering_units,
+            "Future": future,
+        }
+        if extra_fields:
+            body.update(extra_fields)
+
+        resp = self._client.post(
+            f"/dataservers/{quote(data_server_web_id, safe='')}/points",
+            json=body,
+        )
+        raise_for_response(resp)
+        return PIPoint.model_validate(resp.json())
+
+    def delete_point(self, web_id: str) -> None:
+        """Delete a PI Point from the PI Data Server.
+
+        Calls ``DELETE /points/{webId}``.  The operation is permanent; there
+        is no soft-delete or recycle bin in PI Web API.
+
+        Args:
+            web_id: WebID of the PI Point to delete.
+
+        Raises:
+            NotFoundError: If no point with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = self._client.delete(f"/points/{quote(web_id, safe='')}")
+        raise_for_response(resp)
+
 
 class AsyncPointsMixin:
     """Async methods for PI Point lookup. Mixed into the async client class."""
@@ -234,3 +310,76 @@ class AsyncPointsMixin:
         resp = await self._client.get(f"/dataservers/{quote(web_id, safe='')}")
         await raise_for_response_async(resp)
         return PIDataServer.model_validate(resp.json())
+
+    async def create_point(
+        self,
+        data_server_web_id: str,
+        name: str,
+        *,
+        point_type: str = "Float32",
+        point_class: str = "classic",
+        descriptor: str = "",
+        engineering_units: str = "",
+        future: bool = False,
+        extra_fields: dict[str, Any] | None = None,
+    ) -> PIPoint:
+        """Create a new PI Point on a PI Data Server.
+
+        Calls ``POST /dataservers/{webId}/points``.
+
+        Args:
+            data_server_web_id: WebID of the PI Data Server that will own the
+                new point.
+            name: Tag name for the new PI Point (e.g. ``"MyTag"``).
+            point_type: PI Point type string — one of ``"Float32"``
+                (default), ``"Float64"``, ``"Int32"``, ``"Int64"``,
+                ``"String"``, ``"Digital"``, ``"Timestamp"``, ``"Blob"``.
+            point_class: PI Point class. Defaults to ``"classic"``.
+            descriptor: Optional free-text description.
+            engineering_units: EU label (e.g. ``"degC"``).
+            future: Whether the point accepts future-dated values.
+                Defaults to ``False``.
+            extra_fields: Additional key-value pairs merged into the request
+                body for server-specific attributes not covered by the
+                standard parameters.
+
+        Returns:
+            A :class:`PIPoint` populated from the server's response body.
+
+        Raises:
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: If the server returns any other non-2xx status.
+        """
+        body: dict[str, Any] = {
+            "Name": name,
+            "PointType": point_type,
+            "PointClass": point_class,
+            "Descriptor": descriptor,
+            "EngineeringUnits": engineering_units,
+            "Future": future,
+        }
+        if extra_fields:
+            body.update(extra_fields)
+
+        resp = await self._client.post(
+            f"/dataservers/{quote(data_server_web_id, safe='')}/points",
+            json=body,
+        )
+        await raise_for_response_async(resp)
+        return PIPoint.model_validate(resp.json())
+
+    async def delete_point(self, web_id: str) -> None:
+        """Delete a PI Point from the PI Data Server.
+
+        Calls ``DELETE /points/{webId}``.  The operation is permanent.
+
+        Args:
+            web_id: WebID of the PI Point to delete.
+
+        Raises:
+            NotFoundError: If no point with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = await self._client.delete(f"/points/{quote(web_id, safe='')}")
+        await raise_for_response_async(resp)
