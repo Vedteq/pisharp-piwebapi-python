@@ -1,0 +1,19 @@
+pisharp-piwebapi-python
+Copyright 2026 PiSharp (Vedteq)
+
+This project was informed by and acknowledges the following prior work:
+
+- PI-Web-API-Client-Python by dcbark01
+  https://github.com/dcbark01/PI-Web-API-Client-Python
+  Licensed under the Apache License, Version 2.0
+  Used as a reference for authentication patterns and PI Web API edge cases.
+
+- AVEVA PI Web API Common Actions Sample (Python)
+  https://github.com/AVEVA/sample-pi_web_api-common_actions-python
+  Licensed under the Apache License, Version 2.0
+  Used as a reference for PI Web API request patterns and examples.
+
+- PIconnect by Hugo van den Berg
+  https://github.com/Hugovdberg/PIconnect
+  Licensed under the MIT License
+  Used as inspiration for Pythonic API design in the PI ecosystem.
