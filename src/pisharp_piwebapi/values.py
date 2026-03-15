@@ -133,7 +133,7 @@ class StreamsMixin:
 class AsyncStreamsMixin:
     """Async methods for reading and writing PI stream values."""
 
-    _client: httpx.AsyncClient  # type: ignore[assignment]
+    _client: httpx.AsyncClient
 
     async def get_value(self, web_id: str) -> StreamValue:
         """Read the current value of a stream (async)."""

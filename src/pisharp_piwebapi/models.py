@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Any
+from datetime import datetime  # noqa: TCH003
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 from pydantic import BaseModel, Field
 
@@ -65,7 +68,7 @@ class StreamValues(BaseModel):
 
     model_config = {"populate_by_name": True}
 
-    def __iter__(self):  # type: ignore[override]
+    def __iter__(self) -> Iterator[StreamValue]:  # type: ignore[override]
         return iter(self.items)
 
     def __len__(self) -> int:

@@ -60,7 +60,7 @@ class PaginationMixin:
 class AsyncPaginationMixin:
     """Async helpers for paginated API responses."""
 
-    _client: httpx.AsyncClient  # type: ignore[assignment]
+    _client: httpx.AsyncClient
 
     async def get_all_pages(
         self,

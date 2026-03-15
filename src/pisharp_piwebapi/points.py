@@ -65,7 +65,7 @@ class PointsMixin:
 class AsyncPointsMixin:
     """Async methods for PI Point lookup."""
 
-    _client: httpx.AsyncClient  # type: ignore[assignment]
+    _client: httpx.AsyncClient
 
     async def get_by_path(self, path: str) -> PIPoint:
         """Look up a PI Point by its full path (async)."""

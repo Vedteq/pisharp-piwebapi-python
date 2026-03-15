@@ -30,10 +30,10 @@ def kerberos_auth() -> httpx.Auth:
         ImportError: If httpx-gssapi is not installed.
     """
     try:
-        from httpx_gssapi import HTTPSPNEGOAuth  # type: ignore[import-untyped]
+        from httpx_gssapi import HTTPSPNEGOAuth  # type: ignore[import-not-found]
     except ImportError:
         raise ImportError(
             "Kerberos auth requires the 'kerberos' extra. "
             "Install with: pip install pisharp-piwebapi[kerberos]"
         ) from None
-    return HTTPSPNEGOAuth()  # type: ignore[return-value]
+    return HTTPSPNEGOAuth()  # type: ignore[no-any-return]

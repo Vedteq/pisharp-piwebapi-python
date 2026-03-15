@@ -25,7 +25,11 @@ class BatchMixin:
 
                     {
                         "1": {"Method": "GET", "Resource": "/points?path=\\\\SERVER\\\\sinusoid"},
-                        "2": {"Method": "GET", "Resource": "/streams/{0}/value", "ParentIds": ["1"]},
+                        "2": {
+                            "Method": "GET",
+                            "Resource": "/streams/{0}/value",
+                            "ParentIds": ["1"],
+                        },
                     }
 
         Returns:
@@ -40,7 +44,7 @@ class BatchMixin:
 class AsyncBatchMixin:
     """Async methods for batch requests."""
 
-    _client: httpx.AsyncClient  # type: ignore[assignment]
+    _client: httpx.AsyncClient
 
     async def execute_batch(self, requests: dict[str, dict[str, Any]]) -> dict[str, Any]:
         """Execute a batch of PI Web API requests (async)."""

@@ -21,12 +21,26 @@ from pisharp_piwebapi.points import AsyncPointsMixin, PointsMixin
 from pisharp_piwebapi.values import AsyncStreamsMixin, StreamsMixin
 
 
+def _classify_error(status: int, message: str, body: Any) -> PIWebAPIError:
+    """Map an HTTP status code to the appropriate SDK exception."""
+    if status in (401, 403):
+        return AuthenticationError(message, status_code=status, body=body)
+    if status == 404:
+        return NotFoundError(message, status_code=status, body=body)
+    if status == 429:
+        return RateLimitError(message, status_code=status, body=body)
+    if status >= 500:
+        return ServerError(message, status_code=status, body=body)
+    return PIWebAPIError(message, status_code=status, body=body)
+
+
 def _build_event_hooks() -> dict[str, list[Any]]:
-    """Build httpx event hooks for error handling."""
+    """Build httpx sync event hooks for error handling."""
 
     def _raise_on_error(response: httpx.Response) -> None:
         if response.is_success:
             return
+        response.read()  # Ensure body is loaded before accessing it in the hook
         status = response.status_code
         try:
             body = response.json()
@@ -37,18 +51,31 @@ def _build_event_hooks() -> dict[str, list[Any]]:
         if isinstance(body, dict) and "Message" in body:
             message = body["Message"]
 
-        if status in (401, 403):
-            raise AuthenticationError(message, status_code=status, body=body)
-        elif status == 404:
-            raise NotFoundError(message, status_code=status, body=body)
-        elif status == 429:
-            raise RateLimitError(message, status_code=status, body=body)
-        elif status >= 500:
-            raise ServerError(message, status_code=status, body=body)
-        else:
-            raise PIWebAPIError(message, status_code=status, body=body)
+        raise _classify_error(status, message, body)
 
     return {"response": [_raise_on_error]}
+
+
+def _build_async_event_hooks() -> dict[str, list[Any]]:
+    """Build httpx async event hooks for error handling."""
+
+    async def _raise_on_error_async(response: httpx.Response) -> None:
+        if response.is_success:
+            return
+        await response.aread()  # Ensure body is loaded before accessing it in the hook
+        status = response.status_code
+        try:
+            body = response.json()
+        except Exception:
+            body = response.text
+
+        message = f"PI Web API error {status}"
+        if isinstance(body, dict) and "Message" in body:
+            message = body["Message"]
+
+        raise _classify_error(status, message, body)
+
+    return {"response": [_raise_on_error_async]}
 
 
 class _PointsAccessor(PointsMixin):
@@ -69,14 +96,14 @@ class _AsyncPointsAccessor(AsyncPointsMixin):
     """Namespace for point operations on the async client."""
 
     def __init__(self, client: httpx.AsyncClient) -> None:
-        self._client = client  # type: ignore[assignment]
+        self._client = client
 
 
 class _AsyncStreamsAccessor(AsyncStreamsMixin):
     """Namespace for stream operations on the async client."""
 
     def __init__(self, client: httpx.AsyncClient) -> None:
-        self._client = client  # type: ignore[assignment]
+        self._client = client
 
 
 class PIWebAPIClient(BatchMixin, PaginationMixin):
@@ -176,6 +203,17 @@ class AsyncPIWebAPIClient(AsyncBatchMixin, AsyncPaginationMixin):
         cert: str | tuple[str, str] | None = None,
         timeout: float = 30.0,
     ) -> None:
+        """Initialize the async PI Web API client.
+
+        Args:
+            base_url: PI Web API base URL (e.g. "https://server/piwebapi").
+            username: Username for Basic auth.
+            password: Password for Basic auth.
+            auth_method: Authentication method ("basic" or "kerberos").
+            verify_ssl: Whether to verify SSL certificates.
+            cert: Client certificate path or (cert, key) tuple.
+            timeout: Request timeout in seconds.
+        """
         auth: httpx.Auth | None = None
         if auth_method == "kerberos":
             auth = kerberos_auth()
@@ -196,6 +234,7 @@ class AsyncPIWebAPIClient(AsyncBatchMixin, AsyncPaginationMixin):
             verify=ssl_context,
             timeout=timeout,
             headers={"Accept": "application/json", "Content-Type": "application/json"},
+            event_hooks=_build_async_event_hooks(),
         )
         self.points = _AsyncPointsAccessor(self._client)
         self.streams = _AsyncStreamsAccessor(self._client)
