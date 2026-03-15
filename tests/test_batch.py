@@ -7,12 +7,17 @@ import pytest
 import respx
 
 from pisharp_piwebapi.batch import AsyncBatchMixin, BatchMixin
+from pisharp_piwebapi.exceptions import AuthenticationError, ServerError
 
 BASE = "https://piserver/piwebapi"
 
 BATCH_RESPONSE = {
     "1": {"Status": 200, "Headers": {}, "Content": {"WebId": "P0ABC", "Name": "sinusoid"}},
-    "2": {"Status": 200, "Headers": {}, "Content": {"Timestamp": "2024-01-01T00:00:00Z", "Value": 1.0}},
+    "2": {
+        "Status": 200,
+        "Headers": {},
+        "Content": {"Timestamp": "2024-01-01T00:00:00Z", "Value": 1.0},
+    },
 }
 
 
@@ -53,28 +58,32 @@ def test_execute_batch_happy_path() -> None:
 
 @respx.mock
 def test_execute_batch_server_error_raises() -> None:
-    """execute_batch raises on 500."""
+    """execute_batch raises ServerError on 500."""
     respx.post(f"{BASE}/batch").mock(
         return_value=httpx.Response(500, json={"Message": "Server error"})
     )
 
     with httpx.Client(base_url=BASE) as client:
         batch = _SyncBatch(client)
-        with pytest.raises(httpx.HTTPStatusError):
+        with pytest.raises(ServerError) as exc_info:
             batch.execute_batch({"1": {"Method": "GET", "Resource": "/points"}})
+
+    assert exc_info.value.status_code == 500
 
 
 @respx.mock
 def test_execute_batch_auth_error_raises() -> None:
-    """execute_batch raises on 401."""
+    """execute_batch raises AuthenticationError on 401."""
     respx.post(f"{BASE}/batch").mock(
         return_value=httpx.Response(401, json={"Message": "Unauthorized"})
     )
 
     with httpx.Client(base_url=BASE) as client:
         batch = _SyncBatch(client)
-        with pytest.raises(httpx.HTTPStatusError):
+        with pytest.raises(AuthenticationError) as exc_info:
             batch.execute_batch({"1": {"Method": "GET", "Resource": "/points"}})
+
+    assert exc_info.value.status_code == 401
 
 
 # ===========================================================================
@@ -101,12 +110,29 @@ async def test_async_execute_batch_happy_path() -> None:
 
 @respx.mock
 async def test_async_execute_batch_server_error_raises() -> None:
-    """Async execute_batch raises on 500."""
+    """Async execute_batch raises ServerError on 500."""
     respx.post(f"{BASE}/batch").mock(
         return_value=httpx.Response(500, json={"Message": "Server error"})
     )
 
     async with httpx.AsyncClient(base_url=BASE) as client:
         batch = _AsyncBatch(client)
-        with pytest.raises(httpx.HTTPStatusError):
+        with pytest.raises(ServerError) as exc_info:
             await batch.execute_batch({"1": {"Method": "GET", "Resource": "/points"}})
+
+    assert exc_info.value.status_code == 500
+
+
+@respx.mock
+async def test_async_execute_batch_auth_error_raises() -> None:
+    """Async execute_batch raises AuthenticationError on 401."""
+    respx.post(f"{BASE}/batch").mock(
+        return_value=httpx.Response(401, json={"Message": "Unauthorized"})
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        batch = _AsyncBatch(client)
+        with pytest.raises(AuthenticationError) as exc_info:
+            await batch.execute_batch({"1": {"Method": "GET", "Resource": "/points"}})
+
+    assert exc_info.value.status_code == 401

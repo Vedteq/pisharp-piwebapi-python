@@ -6,6 +6,8 @@ from pisharp_piwebapi.exceptions import (
     BatchError,
     NotFoundError,
     PIWebAPIError,
+    RateLimitError,
+    ServerError,
 )
 from pisharp_piwebapi.models import PIPoint, StreamValue, StreamValues
 
@@ -16,6 +18,8 @@ __all__ = [
     "AuthenticationError",
     "NotFoundError",
     "BatchError",
+    "RateLimitError",
+    "ServerError",
     "PIPoint",
     "StreamValue",
     "StreamValues",

@@ -101,14 +101,8 @@ class PIDatabase(BaseModel):
     model_config = {"populate_by_name": True}
 
 
-class BatchResponse(BaseModel):
-    """Response from a batch request. Keys are request IDs."""
-
-    responses: dict[str, BatchResponseItem] = Field(default_factory=dict)
-
-
 class BatchResponseItem(BaseModel):
-    """A single response within a batch."""
+    """A single response within a PI Web API batch result."""
 
     status: int = Field(alias="Status")
     headers: dict[str, str] = Field(alias="Headers", default_factory=dict)
@@ -117,5 +111,11 @@ class BatchResponseItem(BaseModel):
     model_config = {"populate_by_name": True}
 
 
-# Rebuild models that have forward references
-BatchResponse.model_rebuild()
+class BatchResponse(BaseModel):
+    """Response from a batch request.
+
+    The ``responses`` dict maps each caller-assigned request ID to a
+    :class:`BatchResponseItem` containing its individual status and body.
+    """
+
+    responses: dict[str, BatchResponseItem] = Field(default_factory=dict)

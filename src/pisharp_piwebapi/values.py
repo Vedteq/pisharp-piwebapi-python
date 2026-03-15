@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 from urllib.parse import quote
 
+from pisharp_piwebapi.exceptions import raise_for_response, raise_for_response_async
 from pisharp_piwebapi.models import StreamValue, StreamValues
 
 if TYPE_CHECKING:
@@ -13,21 +14,26 @@ if TYPE_CHECKING:
 
 
 class StreamsMixin:
-    """Methods for reading and writing PI stream values. Mixed into client classes."""
+    """Methods for reading and writing PI stream values. Mixed into the sync client class."""
 
     _client: httpx.Client
 
     def get_value(self, web_id: str) -> StreamValue:
-        """Read the current value of a stream.
+        """Read the current (snapshot) value of a stream.
 
         Args:
-            web_id: WebID of the PI Point or attribute.
+            web_id: WebID of the PI Point or AF attribute.
 
         Returns:
-            The current StreamValue.
+            The current :class:`StreamValue`.
+
+        Raises:
+            NotFoundError: If no stream with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
         """
         resp = self._client.get(f"/streams/{quote(web_id, safe='')}/value")
-        resp.raise_for_status()
+        raise_for_response(resp)
         return StreamValue.model_validate(resp.json())
 
     def get_recorded(
@@ -37,16 +43,23 @@ class StreamsMixin:
         end_time: str = "*",
         max_count: int = 1000,
     ) -> StreamValues:
-        """Read recorded values from a stream.
+        """Read recorded (historian) values from a stream.
 
         Args:
-            web_id: WebID of the PI Point or attribute.
-            start_time: Start time (PI time string, e.g. "-1h", "2024-01-01T00:00:00Z").
-            end_time: End time (PI time string, e.g. "*" for now).
-            max_count: Maximum number of values to return.
+            web_id: WebID of the PI Point or AF attribute.
+            start_time: Start time as a PI time string (e.g. ``"-1h"``,
+                ``"2024-01-01T00:00:00Z"``). Defaults to ``"-1h"``.
+            end_time: End time as a PI time string. ``"*"`` means now.
+                Defaults to ``"*"``.
+            max_count: Maximum number of values to return. Defaults to ``1000``.
 
         Returns:
-            StreamValues containing the recorded values.
+            A :class:`StreamValues` collection containing the recorded values.
+
+        Raises:
+            NotFoundError: If no stream with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
         """
         resp = self._client.get(
             f"/streams/{quote(web_id, safe='')}/recorded",
@@ -56,7 +69,7 @@ class StreamsMixin:
                 "maxCount": max_count,
             },
         )
-        resp.raise_for_status()
+        raise_for_response(resp)
         return StreamValues.model_validate(resp.json())
 
     def get_interpolated(
@@ -66,16 +79,25 @@ class StreamsMixin:
         end_time: str = "*",
         interval: str = "10m",
     ) -> StreamValues:
-        """Read interpolated values from a stream.
+        """Read server-side interpolated values from a stream.
+
+        PI Web API computes values at regular intervals between ``start_time``
+        and ``end_time`` using linear interpolation.
 
         Args:
-            web_id: WebID of the PI Point or attribute.
-            start_time: Start time.
-            end_time: End time.
-            interval: Interpolation interval (e.g. "10m", "1h").
+            web_id: WebID of the PI Point or AF attribute.
+            start_time: Start time as a PI time string. Defaults to ``"-1h"``.
+            end_time: End time as a PI time string. Defaults to ``"*"`` (now).
+            interval: Interpolation interval (e.g. ``"10m"``, ``"1h"``).
+                Defaults to ``"10m"``.
 
         Returns:
-            StreamValues containing the interpolated values.
+            A :class:`StreamValues` collection containing the interpolated values.
+
+        Raises:
+            NotFoundError: If no stream with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
         """
         resp = self._client.get(
             f"/streams/{quote(web_id, safe='')}/interpolated",
@@ -85,7 +107,7 @@ class StreamsMixin:
                 "interval": interval,
             },
         )
-        resp.raise_for_status()
+        raise_for_response(resp)
         return StreamValues.model_validate(resp.json())
 
     def update_value(
@@ -97,9 +119,16 @@ class StreamsMixin:
         """Write a single value to a stream.
 
         Args:
-            web_id: WebID of the PI Point or attribute.
-            value: The value to write.
-            timestamp: Optional timestamp (defaults to server time if omitted).
+            web_id: WebID of the PI Point or AF attribute.
+            value: The value to write. Must be compatible with the point's type.
+            timestamp: Optional timestamp. Accepts a :class:`datetime` instance
+                (serialized to ISO 8601) or a PI time string such as
+                ``"2024-06-01T12:00:00Z"``. If omitted the server uses the
+                current time.
+
+        Raises:
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
         """
         body: dict[str, Any] = {"Value": value}
         if timestamp is not None:
@@ -110,35 +139,59 @@ class StreamsMixin:
             f"/streams/{quote(web_id, safe='')}/value",
             json=body,
         )
-        resp.raise_for_status()
+        raise_for_response(resp)
 
     def update_values(
         self,
         web_id: str,
         values: list[dict[str, Any]],
     ) -> None:
-        """Write multiple values to a stream.
+        """Write multiple values to a stream in a single request.
 
         Args:
-            web_id: WebID of the PI Point or attribute.
-            values: List of dicts with "Value" and optionally "Timestamp" keys.
+            web_id: WebID of the PI Point or AF attribute.
+            values: List of value dicts, each with a ``"Value"`` key and
+                optionally a ``"Timestamp"`` key (ISO 8601 string).
+
+                Example::
+
+                    [
+                        {"Value": 1.0, "Timestamp": "2024-06-01T10:00:00Z"},
+                        {"Value": 2.0, "Timestamp": "2024-06-01T11:00:00Z"},
+                    ]
+
+        Raises:
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
         """
         resp = self._client.post(
             f"/streams/{quote(web_id, safe='')}/recorded",
             json=values,
         )
-        resp.raise_for_status()
+        raise_for_response(resp)
 
 
 class AsyncStreamsMixin:
-    """Async methods for reading and writing PI stream values."""
+    """Async methods for reading and writing PI stream values. Mixed into the async client class."""
 
     _client: httpx.AsyncClient
 
     async def get_value(self, web_id: str) -> StreamValue:
-        """Read the current value of a stream (async)."""
+        """Read the current (snapshot) value of a stream.
+
+        Args:
+            web_id: WebID of the PI Point or AF attribute.
+
+        Returns:
+            The current :class:`StreamValue`.
+
+        Raises:
+            NotFoundError: If no stream with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
         resp = await self._client.get(f"/streams/{quote(web_id, safe='')}/value")
-        resp.raise_for_status()
+        await raise_for_response_async(resp)
         return StreamValue.model_validate(resp.json())
 
     async def get_recorded(
@@ -148,7 +201,22 @@ class AsyncStreamsMixin:
         end_time: str = "*",
         max_count: int = 1000,
     ) -> StreamValues:
-        """Read recorded values from a stream (async)."""
+        """Read recorded (historian) values from a stream.
+
+        Args:
+            web_id: WebID of the PI Point or AF attribute.
+            start_time: Start time as a PI time string. Defaults to ``"-1h"``.
+            end_time: End time as a PI time string. Defaults to ``"*"`` (now).
+            max_count: Maximum number of values to return. Defaults to ``1000``.
+
+        Returns:
+            A :class:`StreamValues` collection containing the recorded values.
+
+        Raises:
+            NotFoundError: If no stream with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
         resp = await self._client.get(
             f"/streams/{quote(web_id, safe='')}/recorded",
             params={
@@ -157,7 +225,7 @@ class AsyncStreamsMixin:
                 "maxCount": max_count,
             },
         )
-        resp.raise_for_status()
+        await raise_for_response_async(resp)
         return StreamValues.model_validate(resp.json())
 
     async def get_interpolated(
@@ -167,7 +235,23 @@ class AsyncStreamsMixin:
         end_time: str = "*",
         interval: str = "10m",
     ) -> StreamValues:
-        """Read interpolated values from a stream (async)."""
+        """Read server-side interpolated values from a stream.
+
+        Args:
+            web_id: WebID of the PI Point or AF attribute.
+            start_time: Start time as a PI time string. Defaults to ``"-1h"``.
+            end_time: End time as a PI time string. Defaults to ``"*"`` (now).
+            interval: Interpolation interval (e.g. ``"10m"``, ``"1h"``).
+                Defaults to ``"10m"``.
+
+        Returns:
+            A :class:`StreamValues` collection containing the interpolated values.
+
+        Raises:
+            NotFoundError: If no stream with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
         resp = await self._client.get(
             f"/streams/{quote(web_id, safe='')}/interpolated",
             params={
@@ -176,7 +260,7 @@ class AsyncStreamsMixin:
                 "interval": interval,
             },
         )
-        resp.raise_for_status()
+        await raise_for_response_async(resp)
         return StreamValues.model_validate(resp.json())
 
     async def update_value(
@@ -185,7 +269,18 @@ class AsyncStreamsMixin:
         value: Any,
         timestamp: str | datetime | None = None,
     ) -> None:
-        """Write a single value to a stream (async)."""
+        """Write a single value to a stream.
+
+        Args:
+            web_id: WebID of the PI Point or AF attribute.
+            value: The value to write.
+            timestamp: Optional timestamp as a :class:`datetime` or PI time string.
+                If omitted the server uses the current time.
+
+        Raises:
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
         body: dict[str, Any] = {"Value": value}
         if timestamp is not None:
             body["Timestamp"] = (
@@ -195,16 +290,26 @@ class AsyncStreamsMixin:
             f"/streams/{quote(web_id, safe='')}/value",
             json=body,
         )
-        resp.raise_for_status()
+        await raise_for_response_async(resp)
 
     async def update_values(
         self,
         web_id: str,
         values: list[dict[str, Any]],
     ) -> None:
-        """Write multiple values to a stream (async)."""
+        """Write multiple values to a stream in a single request.
+
+        Args:
+            web_id: WebID of the PI Point or AF attribute.
+            values: List of value dicts, each with a ``"Value"`` key and
+                optionally a ``"Timestamp"`` key (ISO 8601 string).
+
+        Raises:
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
         resp = await self._client.post(
             f"/streams/{quote(web_id, safe='')}/recorded",
             json=values,
         )
-        resp.raise_for_status()
+        await raise_for_response_async(resp)

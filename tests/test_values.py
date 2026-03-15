@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 
 import httpx
 import pytest
 import respx
 
+from pisharp_piwebapi.exceptions import AuthenticationError, NotFoundError, ServerError
 from pisharp_piwebapi.models import StreamValue, StreamValues
 from pisharp_piwebapi.values import AsyncStreamsMixin, StreamsMixin
 
@@ -95,15 +97,18 @@ def test_get_value_happy_path() -> None:
 
 @respx.mock
 def test_get_value_404_raises() -> None:
-    """get_value raises on 404."""
+    """get_value raises NotFoundError on 404."""
     respx.get(f"{BASE}/streams/{WEB_ID}/value").mock(
-        return_value=httpx.Response(404, json={"Message": "Not found"})
+        return_value=httpx.Response(404, json={"Message": "Stream not found"})
     )
 
     with httpx.Client(base_url=BASE) as client:
         streams = _SyncStreams(client)
-        with pytest.raises(httpx.HTTPStatusError):
+        with pytest.raises(NotFoundError) as exc_info:
             streams.get_value(WEB_ID)
+
+    assert exc_info.value.status_code == 404
+    assert "Stream not found" in str(exc_info.value)
 
 
 # ===========================================================================
@@ -147,15 +152,17 @@ def test_get_recorded_passes_query_params() -> None:
 
 @respx.mock
 def test_get_recorded_server_error_raises() -> None:
-    """get_recorded raises on 500."""
+    """get_recorded raises ServerError on 500."""
     respx.get(f"{BASE}/streams/{WEB_ID}/recorded").mock(
         return_value=httpx.Response(500, json={"Message": "Server error"})
     )
 
     with httpx.Client(base_url=BASE) as client:
         streams = _SyncStreams(client)
-        with pytest.raises(httpx.HTTPStatusError):
+        with pytest.raises(ServerError) as exc_info:
             streams.get_recorded(WEB_ID)
+
+    assert exc_info.value.status_code == 500
 
 
 # ===========================================================================
@@ -224,8 +231,6 @@ def test_update_value_with_timestamp() -> None:
         streams = _SyncStreams(client)
         streams.update_value(WEB_ID, 42.0, timestamp=ts)
 
-    import json
-
     body = json.loads(route.calls.last.request.content)
     assert body["Value"] == pytest.approx(42.0)
     assert "2024-06-01" in body["Timestamp"]
@@ -242,23 +247,23 @@ def test_update_value_with_string_timestamp() -> None:
         streams = _SyncStreams(client)
         streams.update_value(WEB_ID, 1.5, timestamp="2024-06-01T00:00:00Z")
 
-    import json
-
     body = json.loads(route.calls.last.request.content)
     assert body["Timestamp"] == "2024-06-01T00:00:00Z"
 
 
 @respx.mock
 def test_update_value_auth_error_raises() -> None:
-    """update_value raises on 401."""
+    """update_value raises AuthenticationError on 401."""
     respx.post(f"{BASE}/streams/{WEB_ID}/value").mock(
         return_value=httpx.Response(401, json={"Message": "Unauthorized"})
     )
 
     with httpx.Client(base_url=BASE) as client:
         streams = _SyncStreams(client)
-        with pytest.raises(httpx.HTTPStatusError):
+        with pytest.raises(AuthenticationError) as exc_info:
             streams.update_value(WEB_ID, 0.0)
+
+    assert exc_info.value.status_code == 401
 
 
 # ===========================================================================
@@ -287,14 +292,14 @@ def test_update_values_happy_path() -> None:
 
 @respx.mock
 def test_update_values_server_error_raises() -> None:
-    """update_values raises on 500."""
+    """update_values raises ServerError on 500."""
     respx.post(f"{BASE}/streams/{WEB_ID}/recorded").mock(
         return_value=httpx.Response(500, json={"Message": "Server error"})
     )
 
     with httpx.Client(base_url=BASE) as client:
         streams = _SyncStreams(client)
-        with pytest.raises(httpx.HTTPStatusError):
+        with pytest.raises(ServerError):
             streams.update_values(WEB_ID, [{"Value": 1.0}])
 
 
@@ -320,15 +325,17 @@ async def test_async_get_value_happy_path() -> None:
 
 @respx.mock
 async def test_async_get_value_404_raises() -> None:
-    """Async get_value raises on 404."""
+    """Async get_value raises NotFoundError on 404."""
     respx.get(f"{BASE}/streams/{WEB_ID}/value").mock(
         return_value=httpx.Response(404, json={"Message": "Not found"})
     )
 
     async with httpx.AsyncClient(base_url=BASE) as client:
         streams = _AsyncStreams(client)
-        with pytest.raises(httpx.HTTPStatusError):
+        with pytest.raises(NotFoundError) as exc_info:
             await streams.get_value(WEB_ID)
+
+    assert exc_info.value.status_code == 404
 
 
 # ===========================================================================
@@ -388,6 +395,19 @@ async def test_async_update_value_happy_path() -> None:
 
     assert result is None
     assert route.called
+
+
+@respx.mock
+async def test_async_update_value_server_error_raises() -> None:
+    """Async update_value raises ServerError on 500."""
+    respx.post(f"{BASE}/streams/{WEB_ID}/value").mock(
+        return_value=httpx.Response(500, json={"Message": "Server error"})
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        streams = _AsyncStreams(client)
+        with pytest.raises(ServerError):
+            await streams.update_value(WEB_ID, 0.0)
 
 
 # ===========================================================================

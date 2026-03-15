@@ -6,6 +6,7 @@ import httpx
 import pytest
 import respx
 
+from pisharp_piwebapi.exceptions import ServerError
 from pisharp_piwebapi.pagination import AsyncPaginationMixin, PaginationMixin
 
 BASE = "https://piserver/piwebapi"
@@ -104,15 +105,17 @@ def test_get_all_pages_passes_initial_params() -> None:
 
 @respx.mock
 def test_get_all_pages_server_error_raises() -> None:
-    """get_all_pages raises on a non-2xx response."""
+    """get_all_pages raises ServerError on a 500 response."""
     respx.get(f"{BASE}/points/search").mock(
         return_value=httpx.Response(500, json={"Message": "Server error"})
     )
 
     with httpx.Client(base_url=BASE) as client:
         pager = _SyncPaginator(client)
-        with pytest.raises(httpx.HTTPStatusError):
+        with pytest.raises(ServerError) as exc_info:
             pager.get_all_pages("/points/search")
+
+    assert exc_info.value.status_code == 500
 
 
 # ===========================================================================
@@ -152,12 +155,14 @@ async def test_async_get_all_pages_follows_next_link() -> None:
 
 @respx.mock
 async def test_async_get_all_pages_server_error_raises() -> None:
-    """Async get_all_pages raises on a non-2xx response."""
+    """Async get_all_pages raises ServerError on a 503 response."""
     respx.get(f"{BASE}/points/search").mock(
         return_value=httpx.Response(503, json={"Message": "Unavailable"})
     )
 
     async with httpx.AsyncClient(base_url=BASE) as client:
         pager = _AsyncPaginator(client)
-        with pytest.raises(httpx.HTTPStatusError):
+        with pytest.raises(ServerError) as exc_info:
             await pager.get_all_pages("/points/search")
+
+    assert exc_info.value.status_code == 503

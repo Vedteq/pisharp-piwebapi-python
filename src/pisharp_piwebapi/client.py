@@ -9,49 +9,18 @@ import httpx
 
 from pisharp_piwebapi.auth import basic_auth, kerberos_auth
 from pisharp_piwebapi.batch import AsyncBatchMixin, BatchMixin
-from pisharp_piwebapi.exceptions import (
-    AuthenticationError,
-    NotFoundError,
-    PIWebAPIError,
-    RateLimitError,
-    ServerError,
-)
+from pisharp_piwebapi.exceptions import raise_for_response, raise_for_response_async
 from pisharp_piwebapi.pagination import AsyncPaginationMixin, PaginationMixin
 from pisharp_piwebapi.points import AsyncPointsMixin, PointsMixin
 from pisharp_piwebapi.values import AsyncStreamsMixin, StreamsMixin
-
-
-def _classify_error(status: int, message: str, body: Any) -> PIWebAPIError:
-    """Map an HTTP status code to the appropriate SDK exception."""
-    if status in (401, 403):
-        return AuthenticationError(message, status_code=status, body=body)
-    if status == 404:
-        return NotFoundError(message, status_code=status, body=body)
-    if status == 429:
-        return RateLimitError(message, status_code=status, body=body)
-    if status >= 500:
-        return ServerError(message, status_code=status, body=body)
-    return PIWebAPIError(message, status_code=status, body=body)
 
 
 def _build_event_hooks() -> dict[str, list[Any]]:
     """Build httpx sync event hooks for error handling."""
 
     def _raise_on_error(response: httpx.Response) -> None:
-        if response.is_success:
-            return
-        response.read()  # Ensure body is loaded before accessing it in the hook
-        status = response.status_code
-        try:
-            body = response.json()
-        except Exception:
-            body = response.text
-
-        message = f"PI Web API error {status}"
-        if isinstance(body, dict) and "Message" in body:
-            message = body["Message"]
-
-        raise _classify_error(status, message, body)
+        response.read()  # Ensure body is loaded before inspecting it in the hook
+        raise_for_response(response)
 
     return {"response": [_raise_on_error]}
 
@@ -60,20 +29,7 @@ def _build_async_event_hooks() -> dict[str, list[Any]]:
     """Build httpx async event hooks for error handling."""
 
     async def _raise_on_error_async(response: httpx.Response) -> None:
-        if response.is_success:
-            return
-        await response.aread()  # Ensure body is loaded before accessing it in the hook
-        status = response.status_code
-        try:
-            body = response.json()
-        except Exception:
-            body = response.text
-
-        message = f"PI Web API error {status}"
-        if isinstance(body, dict) and "Message" in body:
-            message = body["Message"]
-
-        raise _classify_error(status, message, body)
+        await raise_for_response_async(response)
 
     return {"response": [_raise_on_error_async]}
 

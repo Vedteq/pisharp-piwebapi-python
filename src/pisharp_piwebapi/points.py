@@ -1,10 +1,11 @@
-"""Point and attribute lookup operations."""
+"""Point lookup operations for PI Web API."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 from urllib.parse import quote
 
+from pisharp_piwebapi.exceptions import raise_for_response, raise_for_response_async
 from pisharp_piwebapi.models import PIPoint
 
 if TYPE_CHECKING:
@@ -12,7 +13,7 @@ if TYPE_CHECKING:
 
 
 class PointsMixin:
-    """Methods for PI Point lookup. Mixed into the client classes."""
+    """Methods for PI Point lookup. Mixed into the sync client class."""
 
     _client: httpx.Client
 
@@ -20,72 +21,148 @@ class PointsMixin:
         """Look up a PI Point by its full path.
 
         Args:
-            path: Full PI point path, e.g. r"\\\\SERVER\\sinusoid"
+            path: Full PI point path, e.g. ``r"\\\\SERVER\\sinusoid"``.
 
         Returns:
-            PIPoint with the point's metadata and WebId.
+            A :class:`PIPoint` populated from the API response.
+
+        Raises:
+            NotFoundError: If the point does not exist on the server.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
         """
         resp = self._client.get("/points", params={"path": path})
-        resp.raise_for_status()
+        raise_for_response(resp)
         return PIPoint.model_validate(resp.json())
 
     def get_by_web_id(self, web_id: str) -> PIPoint:
         """Look up a PI Point by its WebID.
 
         Args:
-            web_id: The WebID of the point.
+            web_id: The WebID of the point (e.g. ``"P0AbEDFoo123"``).
 
         Returns:
-            PIPoint with the point's metadata.
+            A :class:`PIPoint` populated from the API response.
+
+        Raises:
+            NotFoundError: If no point with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
         """
         resp = self._client.get(f"/points/{quote(web_id, safe='')}")
-        resp.raise_for_status()
+        raise_for_response(resp)
         return PIPoint.model_validate(resp.json())
 
-    def search(self, query: str, max_count: int = 100) -> list[PIPoint]:
-        """Search for PI Points by name pattern.
+    def search(
+        self,
+        data_server_web_id: str,
+        name_filter: str = "*",
+        max_count: int = 100,
+    ) -> list[PIPoint]:
+        """Search for PI Points by name pattern on a specific Data Server.
+
+        PI Web API does not expose a global ``/points/search`` endpoint.
+        Points must be searched within a Data Server using
+        ``GET /dataservers/{webId}/points?nameFilter=...``.
 
         Args:
-            query: Name query (supports wildcards, e.g. "sinu*").
-            max_count: Maximum number of results.
+            data_server_web_id: WebID of the PI Data Server (PI Server) to search.
+                Obtain this via the ``/dataservers`` endpoint or
+                ``client.points.get_data_server()``.
+            name_filter: Name pattern supporting wildcards, e.g. ``"sinu*"``.
+                Defaults to ``"*"`` (all points).
+            max_count: Maximum number of results to return. Defaults to ``100``.
 
         Returns:
-            List of matching PIPoint objects.
+            List of :class:`PIPoint` objects matching the name filter.
+
+        Raises:
+            NotFoundError: If the Data Server WebID is not found.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
         """
         resp = self._client.get(
-            "/points/search",
-            params={"q": query, "maxCount": max_count},
+            f"/dataservers/{quote(data_server_web_id, safe='')}/points",
+            params={"nameFilter": name_filter, "maxCount": max_count},
         )
-        resp.raise_for_status()
+        raise_for_response(resp)
         data = resp.json()
         items = data.get("Items", data) if isinstance(data, dict) else data
         return [PIPoint.model_validate(item) for item in items]
 
 
 class AsyncPointsMixin:
-    """Async methods for PI Point lookup."""
+    """Async methods for PI Point lookup. Mixed into the async client class."""
 
     _client: httpx.AsyncClient
 
     async def get_by_path(self, path: str) -> PIPoint:
-        """Look up a PI Point by its full path (async)."""
+        """Look up a PI Point by its full path.
+
+        Args:
+            path: Full PI point path, e.g. ``r"\\\\SERVER\\sinusoid"``.
+
+        Returns:
+            A :class:`PIPoint` populated from the API response.
+
+        Raises:
+            NotFoundError: If the point does not exist on the server.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
         resp = await self._client.get("/points", params={"path": path})
-        resp.raise_for_status()
+        await raise_for_response_async(resp)
         return PIPoint.model_validate(resp.json())
 
     async def get_by_web_id(self, web_id: str) -> PIPoint:
-        """Look up a PI Point by its WebID (async)."""
+        """Look up a PI Point by its WebID.
+
+        Args:
+            web_id: The WebID of the point (e.g. ``"P0AbEDFoo123"``).
+
+        Returns:
+            A :class:`PIPoint` populated from the API response.
+
+        Raises:
+            NotFoundError: If no point with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
         resp = await self._client.get(f"/points/{quote(web_id, safe='')}")
-        resp.raise_for_status()
+        await raise_for_response_async(resp)
         return PIPoint.model_validate(resp.json())
 
-    async def search(self, query: str, max_count: int = 100) -> list[PIPoint]:
-        """Search for PI Points by name pattern (async)."""
+    async def search(
+        self,
+        data_server_web_id: str,
+        name_filter: str = "*",
+        max_count: int = 100,
+    ) -> list[PIPoint]:
+        """Search for PI Points by name pattern on a specific Data Server.
+
+        PI Web API does not expose a global ``/points/search`` endpoint.
+        Points must be searched within a Data Server using
+        ``GET /dataservers/{webId}/points?nameFilter=...``.
+
+        Args:
+            data_server_web_id: WebID of the PI Data Server (PI Server) to search.
+            name_filter: Name pattern supporting wildcards, e.g. ``"sinu*"``.
+                Defaults to ``"*"`` (all points).
+            max_count: Maximum number of results to return. Defaults to ``100``.
+
+        Returns:
+            List of :class:`PIPoint` objects matching the name filter.
+
+        Raises:
+            NotFoundError: If the Data Server WebID is not found.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
         resp = await self._client.get(
-            "/points/search",
-            params={"q": query, "maxCount": max_count},
+            f"/dataservers/{quote(data_server_web_id, safe='')}/points",
+            params={"nameFilter": name_filter, "maxCount": max_count},
         )
-        resp.raise_for_status()
+        await raise_for_response_async(resp)
         data = resp.json()
         items = data.get("Items", data) if isinstance(data, dict) else data
         return [PIPoint.model_validate(item) for item in items]
