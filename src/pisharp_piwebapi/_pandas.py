@@ -27,10 +27,14 @@ def stream_values_to_dataframe(
 
     The returned DataFrame has a :class:`~pandas.DatetimeIndex` named
     ``"timestamp"`` and a single ``"value"`` column.  Optional quality
-    columns (``"good"``, ``"questionable"``, ``"substituted"``) are included
-    only when they carry non-default data (i.e. when any value is ``False``
-    for ``good`` or ``True`` for the others), saving memory for callers that
-    do not need them.
+    columns (``"good"``, ``"questionable"``, ``"substituted"``,
+    ``"annotated"``) are included only when they carry non-default data
+    (i.e. when any value is ``False`` for ``good``, or ``True`` for the
+    others), saving memory for callers that do not need them.
+
+    The ``"annotated"`` column, when present, indicates values that have PI
+    annotation records attached (e.g. operator comments).  It is omitted when
+    no values in the result are annotated.
 
     Args:
         values: A :class:`~pisharp_piwebapi.models.StreamValues` instance as
@@ -74,6 +78,7 @@ def stream_values_to_dataframe(
             "good": item.good,
             "questionable": item.questionable,
             "substituted": item.substituted,
+            "annotated": item.annotated,
         }
         for item in values.items
     ]
@@ -85,12 +90,15 @@ def stream_values_to_dataframe(
     if tz is not None:
         df.index = df.index.tz_convert(tz)
 
-    # Drop quality columns that carry only their default values.
+    # Drop quality columns that carry only their default values, keeping them
+    # only when they convey real information (i.e. non-default data is present).
     if df["good"].all():
         df = df.drop(columns=["good"])
     if not df["questionable"].any():
         df = df.drop(columns=["questionable"])
     if not df["substituted"].any():
         df = df.drop(columns=["substituted"])
+    if not df["annotated"].any():
+        df = df.drop(columns=["annotated"])
 
     return df

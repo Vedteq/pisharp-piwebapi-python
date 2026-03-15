@@ -182,6 +182,55 @@ def test_datetime_objects_as_timestamps() -> None:
 
 
 # ===========================================================================
+# Happy path — annotated column retained when at least one value is annotated
+# ===========================================================================
+
+
+def test_annotated_column_retained_when_present() -> None:
+    """When any value is annotated, the 'annotated' column is kept in the output."""
+    pytest.importorskip("pandas")
+
+    items = [
+        StreamValue(
+            Timestamp="2024-06-01T10:00:00Z",
+            Value=1.0,
+            Good=True,
+            Questionable=False,
+            Substituted=False,
+            UnitsAbbreviation="",
+            Annotated=True,  # This one has an annotation attached
+        ),
+        StreamValue(
+            Timestamp="2024-06-01T11:00:00Z",
+            Value=2.0,
+            Good=True,
+            Questionable=False,
+            Substituted=False,
+            UnitsAbbreviation="",
+            Annotated=False,
+        ),
+    ]
+    vals = StreamValues(Items=items, WebId="F1", Name="tag", Path="", Links={})
+    df = stream_values_to_dataframe(vals)
+
+    assert "annotated" in df.columns
+    assert df["annotated"].tolist() == [True, False]
+
+
+def test_annotated_column_dropped_when_all_false() -> None:
+    """When no values are annotated, the 'annotated' column is omitted."""
+    pytest.importorskip("pandas")
+
+    vals = _make_stream_values([
+        ("2024-06-01T10:00:00Z", 1.0),
+        ("2024-06-01T11:00:00Z", 2.0),
+    ])
+    df = stream_values_to_dataframe(vals)
+
+    assert "annotated" not in df.columns
+
+
+# ===========================================================================
 # Error case — missing pandas raises ImportError with helpful message
 # ===========================================================================
 

@@ -48,7 +48,8 @@ def _parse_snapshot_items(data: object) -> list[StreamValue]:
     which is shaped like a ``StreamValue`` (``Timestamp``, ``Value``, etc.)
     extended with identity fields (``WebId``, ``Name``, ``Path``).  We
     validate only the ``StreamValue`` fields here; callers who need the
-    identity context should use :meth:`StreamSetsMixin.get_values_ad_hoc`
+    identity context (``WebId``, ``Name``, ``Path``) should use
+    :meth:`StreamSetsMixin.get_recorded_ad_hoc` with a one-element list
     instead.
     """
     if isinstance(data, dict):
