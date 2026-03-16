@@ -27,6 +27,7 @@ def _build_event_hooks() -> dict[str, list[Any]]:
     def _raise_on_error(response: httpx.Response) -> None:
         if response.is_success:
             return
+        response.read()
         status = response.status_code
         try:
             body = response.json()

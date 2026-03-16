@@ -9,16 +9,18 @@ with PIWebAPIClient(
     verify_ssl=False,
 ) as client:
     # Execute multiple requests in a single HTTP call
-    results = client.execute_batch({
-        "1": {
-            "Method": "GET",
-            "Resource": "https://your-server/piwebapi/points?path=\\\\SERVER\\sinusoid",
-        },
-        "2": {
-            "Method": "GET",
-            "Resource": "https://your-server/piwebapi/points?path=\\\\SERVER\\cdt158",
-        },
-    })
+    results = client.execute_batch(
+        {
+            "1": {
+                "Method": "GET",
+                "Resource": "https://your-server/piwebapi/points?path=\\\\SERVER\\sinusoid",
+            },
+            "2": {
+                "Method": "GET",
+                "Resource": "https://your-server/piwebapi/points?path=\\\\SERVER\\cdt158",
+            },
+        }
+    )
 
     for request_id, response in results.items():
         status = response.get("Status", 0)
