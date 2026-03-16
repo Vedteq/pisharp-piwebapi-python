@@ -2,12 +2,28 @@
 
 from pisharp_piwebapi.client import AsyncPIWebAPIClient, PIWebAPIClient
 from pisharp_piwebapi.exceptions import (
-    PIWebAPIError,
     AuthenticationError,
-    NotFoundError,
     BatchError,
+    NotFoundError,
+    PIWebAPIError,
 )
-from pisharp_piwebapi.models import PIPoint, StreamValue, StreamValues
+from pisharp_piwebapi.models import (
+    Analysis,
+    EnumerationSet,
+    EnumerationValue,
+    EventFrame,
+    PIAssetServer,
+    PIAttribute,
+    PIDatabase,
+    PIDataServer,
+    PIElement,
+    PIElementTemplate,
+    PINotificationRule,
+    PIPoint,
+    StreamValue,
+    StreamValues,
+    TimeRule,
+)
 
 __all__ = [
     "PIWebAPIClient",
@@ -16,9 +32,21 @@ __all__ = [
     "AuthenticationError",
     "NotFoundError",
     "BatchError",
+    "Analysis",
+    "EnumerationSet",
+    "EnumerationValue",
+    "EventFrame",
+    "PIAssetServer",
+    "PIAttribute",
+    "PIDatabase",
+    "PIDataServer",
+    "PIElement",
+    "PIElementTemplate",
+    "PINotificationRule",
     "PIPoint",
     "StreamValue",
     "StreamValues",
+    "TimeRule",
 ]
 
 __version__ = "0.1.0"

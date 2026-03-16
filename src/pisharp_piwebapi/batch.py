@@ -25,7 +25,11 @@ class BatchMixin:
 
                     {
                         "1": {"Method": "GET", "Resource": "/points?path=\\\\SERVER\\\\sinusoid"},
-                        "2": {"Method": "GET", "Resource": "/streams/{0}/value", "ParentIds": ["1"]},
+                        "2": {
+                            "Method": "GET",
+                            "Resource": "/streams/{0}/value",
+                            "ParentIds": ["1"],
+                        },
                     }
 
         Returns:

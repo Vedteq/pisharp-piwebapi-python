@@ -1,6 +1,6 @@
 """Tests for Pydantic response models."""
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 from pisharp_piwebapi.models import PIPoint, StreamValue, StreamValues
 
