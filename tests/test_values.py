@@ -638,3 +638,99 @@ async def test_async_get_summary_passes_query_params() -> None:
     assert "startTime=-4h" in raw_query
     assert "summaryType=Mean" in raw_query
     assert "calculationBasis=EventWeighted" in raw_query
+
+
+# ===========================================================================
+# Sync — get_plot
+# ===========================================================================
+
+PLOT_PAYLOAD = {
+    "WebId": WEB_ID,
+    "Name": "sinusoid",
+    "Path": "",
+    "Items": [
+        {"Timestamp": "2024-06-01T11:00:00Z", "Value": 1.0, "Good": True},
+        {"Timestamp": "2024-06-01T11:15:00Z", "Value": 9.5, "Good": True},
+        {"Timestamp": "2024-06-01T11:30:00Z", "Value": 0.2, "Good": True},
+        {"Timestamp": "2024-06-01T11:45:00Z", "Value": 8.8, "Good": True},
+        {"Timestamp": "2024-06-01T12:00:00Z", "Value": 5.0, "Good": True},
+    ],
+    "UnitsAbbreviation": "degC",
+    "Links": {},
+}
+
+
+@respx.mock
+def test_get_plot_happy_path() -> None:
+    """get_plot returns a StreamValues collection with plot-optimized data."""
+    respx.get(f"{BASE}/streams/{WEB_ID}/plot").mock(
+        return_value=httpx.Response(200, json=PLOT_PAYLOAD)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        streams = _SyncStreams(client)
+        vals = streams.get_plot(WEB_ID, start_time="-1h", end_time="*")
+
+    assert isinstance(vals, StreamValues)
+    assert len(vals) == 5
+
+
+@respx.mock
+def test_get_plot_passes_intervals_param() -> None:
+    """get_plot forwards the intervals parameter to the API."""
+    route = respx.get(f"{BASE}/streams/{WEB_ID}/plot").mock(
+        return_value=httpx.Response(200, json=PLOT_PAYLOAD)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        streams = _SyncStreams(client)
+        streams.get_plot(WEB_ID, intervals=48)
+
+    raw_query = route.calls.last.request.url.query.decode()
+    assert "intervals=48" in raw_query
+
+
+@respx.mock
+def test_get_plot_404_raises() -> None:
+    """get_plot raises NotFoundError on 404."""
+    respx.get(f"{BASE}/streams/{WEB_ID}/plot").mock(
+        return_value=httpx.Response(404, json={"Message": "Stream not found"})
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        streams = _SyncStreams(client)
+        with pytest.raises(NotFoundError):
+            streams.get_plot(WEB_ID)
+
+
+# ===========================================================================
+# Async — get_plot
+# ===========================================================================
+
+
+@respx.mock
+async def test_async_get_plot_happy_path() -> None:
+    """Async get_plot returns a StreamValues collection."""
+    respx.get(f"{BASE}/streams/{WEB_ID}/plot").mock(
+        return_value=httpx.Response(200, json=PLOT_PAYLOAD)
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        streams = _AsyncStreams(client)
+        vals = await streams.get_plot(WEB_ID, start_time="-8h", intervals=12)
+
+    assert isinstance(vals, StreamValues)
+    assert len(vals) == 5
+
+
+@respx.mock
+async def test_async_get_plot_404_raises() -> None:
+    """Async get_plot raises NotFoundError on 404."""
+    respx.get(f"{BASE}/streams/{WEB_ID}/plot").mock(
+        return_value=httpx.Response(404, json={"Message": "Not found"})
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        streams = _AsyncStreams(client)
+        with pytest.raises(NotFoundError):
+            await streams.get_plot(WEB_ID)

@@ -162,6 +162,48 @@ class StreamsMixin:
         raise_for_response(resp)
         return StreamSummary.model_validate(resp.json())
 
+    def get_plot(
+        self,
+        web_id: str,
+        start_time: str = "-1h",
+        end_time: str = "*",
+        intervals: int = 24,
+    ) -> StreamValues:
+        """Read plot-optimized values from a stream.
+
+        The PI server selects the most visually interesting values (peaks,
+        valleys, step changes) within each interval, producing data ideal
+        for trend charts.  This is the same algorithm used by PI Vision.
+
+        Calls ``GET /streams/{webId}/plot``.
+
+        Args:
+            web_id: WebID of the PI Point or AF attribute.
+            start_time: Start time as a PI time string. Defaults to ``"-1h"``.
+            end_time: End time as a PI time string. Defaults to ``"*"`` (now).
+            intervals: Number of intervals to divide the time range into.
+                The server returns up to ~5 values per interval.
+                Defaults to ``24``.
+
+        Returns:
+            A :class:`StreamValues` collection containing the plot values.
+
+        Raises:
+            NotFoundError: If no stream with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = self._client.get(
+            f"/streams/{quote(web_id, safe='')}/plot",
+            params={
+                "startTime": start_time,
+                "endTime": end_time,
+                "intervals": intervals,
+            },
+        )
+        raise_for_response(resp)
+        return StreamValues.model_validate(resp.json())
+
     def update_value(
         self,
         web_id: str,
@@ -359,6 +401,48 @@ class AsyncStreamsMixin:
         )
         await raise_for_response_async(resp)
         return StreamSummary.model_validate(resp.json())
+
+    async def get_plot(
+        self,
+        web_id: str,
+        start_time: str = "-1h",
+        end_time: str = "*",
+        intervals: int = 24,
+    ) -> StreamValues:
+        """Read plot-optimized values from a stream.
+
+        The PI server selects the most visually interesting values (peaks,
+        valleys, step changes) within each interval, producing data ideal
+        for trend charts.  This is the same algorithm used by PI Vision.
+
+        Calls ``GET /streams/{webId}/plot``.
+
+        Args:
+            web_id: WebID of the PI Point or AF attribute.
+            start_time: Start time as a PI time string. Defaults to ``"-1h"``.
+            end_time: End time as a PI time string. Defaults to ``"*"`` (now).
+            intervals: Number of intervals to divide the time range into.
+                The server returns up to ~5 values per interval.
+                Defaults to ``24``.
+
+        Returns:
+            A :class:`StreamValues` collection containing the plot values.
+
+        Raises:
+            NotFoundError: If no stream with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = await self._client.get(
+            f"/streams/{quote(web_id, safe='')}/plot",
+            params={
+                "startTime": start_time,
+                "endTime": end_time,
+                "intervals": intervals,
+            },
+        )
+        await raise_for_response_async(resp)
+        return StreamValues.model_validate(resp.json())
 
     async def update_value(
         self,
