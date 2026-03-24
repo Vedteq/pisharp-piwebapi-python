@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import httpx
 from conftest import (
+    AF_DATABASE,
     ATTRIBUTE_SPEED,
     ATTRIBUTE_TEMP,
     ELEMENT_MOTOR,
@@ -13,6 +14,7 @@ from conftest import (
 from pisharp_piwebapi.models import PIAttribute, PIElement
 
 ELEM_WEB_ID = ELEMENT_PUMP["WebId"]
+DB_WEB_ID = AF_DATABASE["WebId"]
 
 
 class TestElementsAsync:
@@ -63,3 +65,27 @@ class TestElementsAsync:
         route = mock.delete(f"/elements/{ELEM_WEB_ID}").mock(return_value=httpx.Response(204))
         await client.elements.delete_element(ELEM_WEB_ID)
         assert route.called
+
+    async def test_get_elements_default_does_not_send_search_full_hierarchy(self, async_client):
+        """get_elements with default args does not send the searchFullHierarchy param."""
+        client, mock = async_client
+        route = mock.get(f"/assetdatabases/{DB_WEB_ID}/elements").mock(
+            return_value=httpx.Response(200, json={"Items": [ELEMENT_PUMP]})
+        )
+        await client.elements.get_elements(DB_WEB_ID)
+        raw_query = route.calls.last.request.url.query.decode()
+        assert "searchFullHierarchy" not in raw_query
+
+    async def test_get_elements_search_full_hierarchy_true(self, async_client):
+        """get_elements passes searchFullHierarchy=True when requested."""
+        client, mock = async_client
+        route = mock.get(f"/assetdatabases/{DB_WEB_ID}/elements").mock(
+            return_value=httpx.Response(
+                200, json={"Items": [ELEMENT_PUMP, ELEMENT_MOTOR]}
+            )
+        )
+        result = await client.elements.get_elements(DB_WEB_ID, search_full_hierarchy=True)
+        raw_query = route.calls.last.request.url.query.decode()
+        assert "searchFullHierarchy=true" in raw_query
+        assert len(result) == 2
+        assert all(isinstance(e, PIElement) for e in result)

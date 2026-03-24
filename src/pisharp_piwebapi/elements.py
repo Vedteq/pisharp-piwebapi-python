@@ -118,14 +118,22 @@ class ElementsMixin:
         database_web_id: str,
         name_filter: str = "*",
         max_count: int = 100,
+        search_full_hierarchy: bool = False,
     ) -> list[PIElement]:
-        """Return top-level AF elements in a database.
+        """Return AF elements in a database.
+
+        By default only top-level (root) elements are returned.  Set
+        ``search_full_hierarchy=True`` to traverse the entire element tree and
+        return all matching elements at any depth.
 
         Args:
             database_web_id: WebID of the AF database.
             name_filter: Name pattern supporting wildcards, e.g. ``"Reactor*"``.
                 Defaults to ``"*"`` (all elements).
             max_count: Maximum number of results to return. Defaults to ``100``.
+            search_full_hierarchy: When ``True``, the PI Web API server searches
+                recursively through all child elements.  Defaults to ``False``
+                (top-level only).
 
         Returns:
             List of :class:`PIElement` objects.
@@ -135,9 +143,15 @@ class ElementsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        params: dict[str, str | int | bool] = {
+            "nameFilter": name_filter,
+            "maxCount": max_count,
+        }
+        if search_full_hierarchy:
+            params["searchFullHierarchy"] = True
         resp = self._client.get(
             f"/assetdatabases/{quote(database_web_id, safe='')}/elements",
-            params={"nameFilter": name_filter, "maxCount": max_count},
+            params=params,
         )
         raise_for_response(resp)
         data = resp.json()
@@ -407,13 +421,21 @@ class AsyncElementsMixin:
         database_web_id: str,
         name_filter: str = "*",
         max_count: int = 100,
+        search_full_hierarchy: bool = False,
     ) -> list[PIElement]:
-        """Return top-level AF elements in a database.
+        """Return AF elements in a database.
+
+        By default only top-level (root) elements are returned.  Set
+        ``search_full_hierarchy=True`` to traverse the entire element tree and
+        return all matching elements at any depth.
 
         Args:
             database_web_id: WebID of the AF database.
             name_filter: Name pattern supporting wildcards. Defaults to ``"*"``.
             max_count: Maximum number of results to return. Defaults to ``100``.
+            search_full_hierarchy: When ``True``, the PI Web API server searches
+                recursively through all child elements.  Defaults to ``False``
+                (top-level only).
 
         Returns:
             List of :class:`PIElement` objects.
@@ -423,9 +445,15 @@ class AsyncElementsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        params: dict[str, str | int | bool] = {
+            "nameFilter": name_filter,
+            "maxCount": max_count,
+        }
+        if search_full_hierarchy:
+            params["searchFullHierarchy"] = True
         resp = await self._client.get(
             f"/assetdatabases/{quote(database_web_id, safe='')}/elements",
-            params={"nameFilter": name_filter, "maxCount": max_count},
+            params=params,
         )
         await raise_for_response_async(resp)
         data = resp.json()
