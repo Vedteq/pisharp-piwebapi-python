@@ -89,3 +89,15 @@ class TestElementsAsync:
         assert "searchFullHierarchy=true" in raw_query
         assert len(result) == 2
         assert all(isinstance(e, PIElement) for e in result)
+
+    async def test_get_attribute_by_path(self, async_client):
+        client, mock = async_client
+        mock.get(
+            "/attributes",
+            params={"path": "\\\\AF\\Production\\Pump-001|Temperature"},
+        ).mock(return_value=httpx.Response(200, json=ATTRIBUTE_TEMP))
+        attr = await client.elements.get_attribute_by_path(
+            r"\\AF\Production\Pump-001|Temperature"
+        )
+        assert isinstance(attr, PIAttribute)
+        assert attr.name == "Temperature"

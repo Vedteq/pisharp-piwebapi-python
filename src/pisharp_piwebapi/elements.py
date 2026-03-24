@@ -273,6 +273,27 @@ class ElementsMixin:
         raise_for_response(resp)
         return PIAttribute.model_validate(resp.json())
 
+    def get_attribute_by_path(self, path: str) -> PIAttribute:
+        """Look up an AF attribute by its full path.
+
+        The path uses a pipe (``|``) to separate the element path from the
+        attribute name, e.g. ``"\\\\AF_SERVER\\DB\\Element|Temperature"``.
+
+        Args:
+            path: Full AF attribute path.
+
+        Returns:
+            A :class:`PIAttribute` populated from the API response.
+
+        Raises:
+            NotFoundError: If the attribute path is not found.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = self._client.get("/attributes", params={"path": path})
+        raise_for_response(resp)
+        return PIAttribute.model_validate(resp.json())
+
     def create_element(
         self,
         parent_web_id: str,
@@ -572,6 +593,27 @@ class AsyncElementsMixin:
             PIWebAPIError: For any other non-2xx response.
         """
         resp = await self._client.get(f"/attributes/{quote(web_id, safe='')}")
+        await raise_for_response_async(resp)
+        return PIAttribute.model_validate(resp.json())
+
+    async def get_attribute_by_path(self, path: str) -> PIAttribute:
+        """Look up an AF attribute by its full path.
+
+        The path uses a pipe (``|``) to separate the element path from the
+        attribute name, e.g. ``"\\\\AF_SERVER\\DB\\Element|Temperature"``.
+
+        Args:
+            path: Full AF attribute path.
+
+        Returns:
+            A :class:`PIAttribute` populated from the API response.
+
+        Raises:
+            NotFoundError: If the attribute path is not found.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = await self._client.get("/attributes", params={"path": path})
         await raise_for_response_async(resp)
         return PIAttribute.model_validate(resp.json())
 

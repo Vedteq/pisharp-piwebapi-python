@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import httpx
+import pytest
 from conftest import (
     AF_DATABASE,
     ATTRIBUTE_SPEED,
@@ -11,6 +12,7 @@ from conftest import (
     ELEMENT_PUMP,
 )
 
+from pisharp_piwebapi.exceptions import NotFoundError
 from pisharp_piwebapi.models import PIAttribute, PIElement
 
 ELEM_WEB_ID = ELEMENT_PUMP["WebId"]
@@ -99,3 +101,27 @@ class TestElementsSync:
         assert "searchFullHierarchy=true" in raw_query
         assert len(result) == 2
         assert all(isinstance(e, PIElement) for e in result)
+
+    def test_get_attribute_by_path(self, sync_client):
+        client, mock = sync_client
+        attr_path = r"\\AF\Production\Pump-001|Temperature"
+        mock.get(
+            "/attributes",
+            params={"path": "\\\\AF\\Production\\Pump-001|Temperature"},
+        ).mock(return_value=httpx.Response(200, json=ATTRIBUTE_TEMP))
+        attr = client.elements.get_attribute_by_path(attr_path)
+        assert isinstance(attr, PIAttribute)
+        assert attr.name == "Temperature"
+        assert attr.web_id == "A0temp001"
+
+    def test_get_attribute_by_path_not_found(self, sync_client):
+        client, mock = sync_client
+        mock.get("/attributes").mock(
+            return_value=httpx.Response(
+                404, json={"Message": "Attribute not found."}
+            )
+        )
+        with pytest.raises(NotFoundError):
+            client.elements.get_attribute_by_path(
+                r"\\AF\Production\Pump-001|Nonexistent"
+            )
