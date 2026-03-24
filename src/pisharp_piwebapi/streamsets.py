@@ -211,6 +211,39 @@ class StreamSetsMixin:
         raise_for_response(resp)
         return _parse_streamset_items(resp.json())
 
+    def get_values_by_element(
+        self,
+        element_web_id: str,
+        name_filter: str = "*",
+    ) -> list[StreamSetItem]:
+        """Read the current (snapshot) value of all attributes of an AF element.
+
+        Calls ``GET /streamsets/{elementWebId}/value``.  This is the
+        element-scoped snapshot variant that does not require enumerating
+        individual attribute WebIDs.
+
+        Args:
+            element_web_id: WebID of the AF element.
+            name_filter: Attribute name pattern supporting wildcards.
+                Defaults to ``"*"`` (all attributes).
+
+        Returns:
+            List of :class:`StreamSetItem` objects, one per attribute.  Each
+            item's ``items`` list contains a single snapshot value for that
+            attribute.
+
+        Raises:
+            NotFoundError: If the element WebID is not found.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = self._client.get(
+            f"/streamsets/{quote(element_web_id, safe='')}/value",
+            params={"nameFilter": name_filter},
+        )
+        raise_for_response(resp)
+        return _parse_streamset_items(resp.json())
+
     def get_interpolated_by_element(
         self,
         element_web_id: str,
@@ -394,6 +427,37 @@ class AsyncStreamSetsMixin:
                 "maxCount": max_count,
                 "nameFilter": name_filter,
             },
+        )
+        await raise_for_response_async(resp)
+        return _parse_streamset_items(resp.json())
+
+    async def get_values_by_element(
+        self,
+        element_web_id: str,
+        name_filter: str = "*",
+    ) -> list[StreamSetItem]:
+        """Read the current (snapshot) value of all attributes of an AF element.
+
+        Calls ``GET /streamsets/{elementWebId}/value``.
+
+        Args:
+            element_web_id: WebID of the AF element.
+            name_filter: Attribute name pattern supporting wildcards.
+                Defaults to ``"*"`` (all attributes).
+
+        Returns:
+            List of :class:`StreamSetItem` objects, one per attribute.  Each
+            item's ``items`` list contains a single snapshot value for that
+            attribute.
+
+        Raises:
+            NotFoundError: If the element WebID is not found.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = await self._client.get(
+            f"/streamsets/{quote(element_web_id, safe='')}/value",
+            params={"nameFilter": name_filter},
         )
         await raise_for_response_async(resp)
         return _parse_streamset_items(resp.json())

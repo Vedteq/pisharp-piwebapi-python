@@ -590,3 +590,120 @@ async def test_async_get_interpolated_by_element_server_error_raises() -> None:
             await ss.get_interpolated_by_element(ELEM_WEB_ID)
 
     assert exc_info.value.status_code == 503
+
+
+# ===========================================================================
+# Sync — get_values_by_element (snapshot)
+# ===========================================================================
+
+# Snapshot-by-element payload: PI Web API wraps in {"Items": [...]}
+SNAPSHOT_BY_ELEM_PAYLOAD = {
+    "Items": [
+        {
+            "WebId": WEB_ID_A,
+            "Name": "Temperature",
+            "Path": "",
+            "Items": [
+                {"Timestamp": "2024-06-01T12:00:00Z", "Value": 72.1, "Good": True},
+            ],
+            "UnitsAbbreviation": "degF",
+            "Links": {},
+        },
+        {
+            "WebId": WEB_ID_B,
+            "Name": "Pressure",
+            "Path": "",
+            "Items": [
+                {"Timestamp": "2024-06-01T12:00:00Z", "Value": 14.7, "Good": True},
+            ],
+            "UnitsAbbreviation": "psi",
+            "Links": {},
+        },
+    ]
+}
+
+
+@respx.mock
+def test_get_values_by_element_happy_path() -> None:
+    """get_values_by_element returns a StreamSetItem per attribute."""
+    respx.get(f"{BASE}/streamsets/{ELEM_WEB_ID}/value").mock(
+        return_value=httpx.Response(200, json=SNAPSHOT_BY_ELEM_PAYLOAD)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        ss = _SyncStreamSets(client)
+        result = ss.get_values_by_element(ELEM_WEB_ID)
+
+    assert len(result) == 2
+    assert all(isinstance(item, StreamSetItem) for item in result)
+    assert result[0].web_id == WEB_ID_A
+    assert result[0].name == "Temperature"
+    assert len(result[0].items) == 1
+    assert result[0].items[0].value == pytest.approx(72.1)
+
+
+@respx.mock
+def test_get_values_by_element_passes_name_filter() -> None:
+    """get_values_by_element forwards the nameFilter query parameter."""
+    route = respx.get(f"{BASE}/streamsets/{ELEM_WEB_ID}/value").mock(
+        return_value=httpx.Response(200, json=SNAPSHOT_BY_ELEM_PAYLOAD)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        ss = _SyncStreamSets(client)
+        ss.get_values_by_element(ELEM_WEB_ID, name_filter="Temp*")
+
+    raw_query = route.calls.last.request.url.query.decode()
+    assert "nameFilter=Temp" in raw_query
+
+
+@respx.mock
+def test_get_values_by_element_404_raises() -> None:
+    """get_values_by_element raises NotFoundError on 404."""
+    respx.get(f"{BASE}/streamsets/{ELEM_WEB_ID}/value").mock(
+        return_value=httpx.Response(404, json={"Message": "Element not found"})
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        ss = _SyncStreamSets(client)
+        with pytest.raises(NotFoundError) as exc_info:
+            ss.get_values_by_element(ELEM_WEB_ID)
+
+    assert exc_info.value.status_code == 404
+    assert "Element not found" in str(exc_info.value)
+
+
+# ===========================================================================
+# Async — get_values_by_element (snapshot)
+# ===========================================================================
+
+
+@respx.mock
+async def test_async_get_values_by_element_happy_path() -> None:
+    """Async get_values_by_element returns a StreamSetItem per attribute."""
+    respx.get(f"{BASE}/streamsets/{ELEM_WEB_ID}/value").mock(
+        return_value=httpx.Response(200, json=SNAPSHOT_BY_ELEM_PAYLOAD)
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        ss = _AsyncStreamSets(client)
+        result = await ss.get_values_by_element(ELEM_WEB_ID)
+
+    assert len(result) == 2
+    assert all(isinstance(item, StreamSetItem) for item in result)
+    assert result[1].name == "Pressure"
+
+
+@respx.mock
+async def test_async_get_values_by_element_404_raises() -> None:
+    """Async get_values_by_element raises NotFoundError on 404."""
+    respx.get(f"{BASE}/streamsets/{ELEM_WEB_ID}/value").mock(
+        return_value=httpx.Response(404, json={"Message": "Element not found"})
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        ss = _AsyncStreamSets(client)
+        with pytest.raises(NotFoundError) as exc_info:
+            await ss.get_values_by_element(ELEM_WEB_ID)
+
+    assert exc_info.value.status_code == 404
