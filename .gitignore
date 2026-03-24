@@ -17,6 +17,7 @@ env/
 htmlcov/
 .coverage
 *.log
+site/
 .DS_Store
 Thumbs.db
 .env.local

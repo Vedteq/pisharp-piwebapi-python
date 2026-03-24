@@ -10,9 +10,18 @@ import httpx
 from pisharp_piwebapi.auth import basic_auth, kerberos_auth, ntlm_auth
 from pisharp_piwebapi.batch import AsyncBatchMixin, BatchMixin
 from pisharp_piwebapi.elements import AsyncElementsMixin, ElementsMixin
+from pisharp_piwebapi.eventframes import AsyncEventFramesMixin, EventFramesMixin
 from pisharp_piwebapi.exceptions import raise_for_response, raise_for_response_async
 from pisharp_piwebapi.pagination import AsyncPaginationMixin, PaginationMixin
 from pisharp_piwebapi.points import AsyncPointsMixin, PointsMixin
+from pisharp_piwebapi.servers import (
+    AssetServersMixin,
+    AsyncAssetServersMixin,
+    AsyncDatabasesMixin,
+    AsyncDataServersMixin,
+    DatabasesMixin,
+    DataServersMixin,
+)
 from pisharp_piwebapi.streamsets import AsyncStreamSetsMixin, StreamSetsMixin
 from pisharp_piwebapi.values import AsyncStreamsMixin, StreamsMixin
 
@@ -50,8 +59,43 @@ class _StreamsAccessor(StreamsMixin):
         self._client = client
 
 
+class _StreamSetsAccessor(StreamSetsMixin):
+    """Namespace for streamset (multi-stream) operations on the sync client."""
+
+    def __init__(self, client: httpx.Client) -> None:
+        self._client = client
+
+
 class _ElementsAccessor(ElementsMixin):
     """Namespace for AF element operations on the sync client."""
+
+    def __init__(self, client: httpx.Client) -> None:
+        self._client = client
+
+
+class _EventFramesAccessor(EventFramesMixin):
+    """Namespace for event frame operations on the sync client."""
+
+    def __init__(self, client: httpx.Client) -> None:
+        self._client = client
+
+
+class _AssetServersAccessor(AssetServersMixin):
+    """Namespace for asset server operations on the sync client."""
+
+    def __init__(self, client: httpx.Client) -> None:
+        self._client = client
+
+
+class _DataServersAccessor(DataServersMixin):
+    """Namespace for data server operations on the sync client."""
+
+    def __init__(self, client: httpx.Client) -> None:
+        self._client = client
+
+
+class _DatabasesAccessor(DatabasesMixin):
+    """Namespace for database operations on the sync client."""
 
     def __init__(self, client: httpx.Client) -> None:
         self._client = client
@@ -71,10 +115,10 @@ class _AsyncStreamsAccessor(AsyncStreamsMixin):
         self._client = client
 
 
-class _StreamSetsAccessor(StreamSetsMixin):
-    """Namespace for streamset (multi-stream) operations on the sync client."""
+class _AsyncStreamSetsAccessor(AsyncStreamSetsMixin):
+    """Namespace for streamset (multi-stream) operations on the async client."""
 
-    def __init__(self, client: httpx.Client) -> None:
+    def __init__(self, client: httpx.AsyncClient) -> None:
         self._client = client
 
 
@@ -85,8 +129,29 @@ class _AsyncElementsAccessor(AsyncElementsMixin):
         self._client = client
 
 
-class _AsyncStreamSetsAccessor(AsyncStreamSetsMixin):
-    """Namespace for streamset (multi-stream) operations on the async client."""
+class _AsyncEventFramesAccessor(AsyncEventFramesMixin):
+    """Namespace for event frame operations on the async client."""
+
+    def __init__(self, client: httpx.AsyncClient) -> None:
+        self._client = client
+
+
+class _AsyncAssetServersAccessor(AsyncAssetServersMixin):
+    """Namespace for asset server operations on the async client."""
+
+    def __init__(self, client: httpx.AsyncClient) -> None:
+        self._client = client
+
+
+class _AsyncDataServersAccessor(AsyncDataServersMixin):
+    """Namespace for data server operations on the async client."""
+
+    def __init__(self, client: httpx.AsyncClient) -> None:
+        self._client = client
+
+
+class _AsyncDatabasesAccessor(AsyncDatabasesMixin):
+    """Namespace for database operations on the async client."""
 
     def __init__(self, client: httpx.AsyncClient) -> None:
         self._client = client
@@ -157,6 +222,10 @@ class PIWebAPIClient(BatchMixin, PaginationMixin):
         self.streams = _StreamsAccessor(self._client)
         self.streamsets = _StreamSetsAccessor(self._client)
         self.elements = _ElementsAccessor(self._client)
+        self.eventframes = _EventFramesAccessor(self._client)
+        self.assetservers = _AssetServersAccessor(self._client)
+        self.dataservers = _DataServersAccessor(self._client)
+        self.databases = _DatabasesAccessor(self._client)
 
     def close(self) -> None:
         """Close the underlying HTTP connection."""
@@ -234,6 +303,10 @@ class AsyncPIWebAPIClient(AsyncBatchMixin, AsyncPaginationMixin):
         self.streams = _AsyncStreamsAccessor(self._client)
         self.streamsets = _AsyncStreamSetsAccessor(self._client)
         self.elements = _AsyncElementsAccessor(self._client)
+        self.eventframes = _AsyncEventFramesAccessor(self._client)
+        self.assetservers = _AsyncAssetServersAccessor(self._client)
+        self.dataservers = _AsyncDataServersAccessor(self._client)
+        self.databases = _AsyncDatabasesAccessor(self._client)
 
     async def aclose(self) -> None:
         """Close the underlying HTTP connection."""

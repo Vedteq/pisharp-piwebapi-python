@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from urllib.parse import quote
 
 from pisharp_piwebapi.exceptions import raise_for_response, raise_for_response_async
@@ -259,6 +259,51 @@ class ElementsMixin:
         raise_for_response(resp)
         return PIAttribute.model_validate(resp.json())
 
+    def create_element(
+        self,
+        parent_web_id: str,
+        name: str,
+        description: str = "",
+        template_name: str = "",
+    ) -> None:
+        """Create a child element under a parent element.
+
+        Args:
+            parent_web_id: WebID of the parent AF element.
+            name: Name for the new element.
+            description: Optional description.
+            template_name: Optional AF element template name.
+
+        Raises:
+            NotFoundError: If the parent element WebID is not found.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        body: dict[str, Any] = {"Name": name}
+        if description:
+            body["Description"] = description
+        if template_name:
+            body["TemplateName"] = template_name
+        resp = self._client.post(
+            f"/elements/{quote(parent_web_id, safe='')}/elements",
+            json=body,
+        )
+        raise_for_response(resp)
+
+    def delete_element(self, web_id: str) -> None:
+        """Delete an AF element.
+
+        Args:
+            web_id: WebID of the AF element to delete.
+
+        Raises:
+            NotFoundError: If no element with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = self._client.delete(f"/elements/{quote(web_id, safe='')}")
+        raise_for_response(resp)
+
 
 class AsyncElementsMixin:
     """Async methods for AF element and database lookup. Mixed into the async client class."""
@@ -501,3 +546,48 @@ class AsyncElementsMixin:
         resp = await self._client.get(f"/attributes/{quote(web_id, safe='')}")
         await raise_for_response_async(resp)
         return PIAttribute.model_validate(resp.json())
+
+    async def create_element(
+        self,
+        parent_web_id: str,
+        name: str,
+        description: str = "",
+        template_name: str = "",
+    ) -> None:
+        """Create a child element under a parent element.
+
+        Args:
+            parent_web_id: WebID of the parent AF element.
+            name: Name for the new element.
+            description: Optional description.
+            template_name: Optional AF element template name.
+
+        Raises:
+            NotFoundError: If the parent element WebID is not found.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        body: dict[str, Any] = {"Name": name}
+        if description:
+            body["Description"] = description
+        if template_name:
+            body["TemplateName"] = template_name
+        resp = await self._client.post(
+            f"/elements/{quote(parent_web_id, safe='')}/elements",
+            json=body,
+        )
+        await raise_for_response_async(resp)
+
+    async def delete_element(self, web_id: str) -> None:
+        """Delete an AF element.
+
+        Args:
+            web_id: WebID of the AF element to delete.
+
+        Raises:
+            NotFoundError: If no element with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = await self._client.delete(f"/elements/{quote(web_id, safe='')}")
+        await raise_for_response_async(resp)

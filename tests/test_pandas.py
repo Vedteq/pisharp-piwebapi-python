@@ -251,3 +251,69 @@ def test_import_error_message_is_actionable(monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.setattr(builtins, "__import__", _mock_import)
     with pytest.raises(ImportError, match="pip install pisharp-piwebapi\\[pandas\\]"):
         stream_values_to_dataframe(vals)
+
+
+# ===========================================================================
+# StreamValues.to_dataframe() method tests
+# ===========================================================================
+
+
+def test_to_dataframe_basic() -> None:
+    """StreamValues.to_dataframe() produces a valid DataFrame."""
+    pandas = pytest.importorskip("pandas")
+
+    data = {
+        "WebId": "S0123",
+        "Name": "sinusoid",
+        "Items": [
+            {"Timestamp": "2024-06-15T10:00:00Z", "Value": 1.0, "Good": True},
+            {"Timestamp": "2024-06-15T10:05:00Z", "Value": 2.0, "Good": True},
+            {"Timestamp": "2024-06-15T10:10:00Z", "Value": 3.0, "Good": False},
+        ],
+    }
+    values = StreamValues.model_validate(data)
+    df = values.to_dataframe()
+
+    assert isinstance(df, pandas.DataFrame)
+    assert len(df) == 3
+    assert df.index.name == "timestamp"
+    assert list(df["value"]) == [1.0, 2.0, 3.0]
+    assert list(df["good"]) == [True, True, False]
+
+
+def test_to_dataframe_empty() -> None:
+    """StreamValues.to_dataframe() on empty items produces an empty DataFrame."""
+    pandas = pytest.importorskip("pandas")
+
+    data = {"WebId": "S0123", "Name": "empty", "Items": []}
+    values = StreamValues.model_validate(data)
+    df = values.to_dataframe()
+
+    assert isinstance(df, pandas.DataFrame)
+    assert len(df) == 0
+
+
+def test_to_dataframe_preserves_all_columns() -> None:
+    """StreamValues.to_dataframe() preserves all quality and unit columns."""
+    pytest.importorskip("pandas")
+
+    data = {
+        "Items": [
+            {
+                "Timestamp": "2024-06-15T10:00:00Z",
+                "Value": 42.5,
+                "Good": True,
+                "Questionable": True,
+                "Substituted": False,
+                "Annotated": True,
+                "UnitsAbbreviation": "degC",
+            },
+        ],
+    }
+    values = StreamValues.model_validate(data)
+    df = values.to_dataframe()
+
+    assert df.iloc[0]["value"] == 42.5
+    assert df.iloc[0]["questionable"] == True  # noqa: E712
+    assert df.iloc[0]["annotated"] == True  # noqa: E712
+    assert df.iloc[0]["units_abbreviation"] == "degC"
