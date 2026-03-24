@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import httpx
+import pytest
 from conftest import (
     ELEMENT_PUMP,
     EVENT_FRAME_1,
     EVENT_FRAME_2,
 )
 
+from pisharp_piwebapi.exceptions import AuthenticationError, NotFoundError
 from pisharp_piwebapi.models import EventFrame
 
 EF_WEB_ID = EVENT_FRAME_1["WebId"]
@@ -72,3 +74,23 @@ class TestEventFramesSync:
         route = mock.delete(f"/eventframes/{EF_WEB_ID}").mock(return_value=httpx.Response(204))
         client.eventframes.delete(EF_WEB_ID)
         assert route.called
+
+    def test_get_by_web_id_not_found(self, sync_client):
+        client, mock = sync_client
+        mock.get("/eventframes/MISSING").mock(
+            return_value=httpx.Response(
+                404, json={"Message": "Event frame not found."}
+            )
+        )
+        with pytest.raises(NotFoundError):
+            client.eventframes.get_by_web_id("MISSING")
+
+    def test_search_unauthorized(self, sync_client):
+        client, mock = sync_client
+        mock.get("/eventframes/search").mock(
+            return_value=httpx.Response(
+                401, json={"Message": "Unauthorized."}
+            )
+        )
+        with pytest.raises(AuthenticationError):
+            client.eventframes.search("Motor*")

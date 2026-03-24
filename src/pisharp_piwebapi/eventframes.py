@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 from urllib.parse import quote
 
+from pisharp_piwebapi.exceptions import raise_for_response, raise_for_response_async
 from pisharp_piwebapi.models import EventFrame
 
 if TYPE_CHECKING:
@@ -17,9 +18,21 @@ class EventFramesMixin:
     _client: httpx.Client
 
     def get_by_web_id(self, web_id: str) -> EventFrame:
-        """Look up an Event Frame by its WebID."""
+        """Look up an Event Frame by its WebID.
+
+        Args:
+            web_id: WebID of the Event Frame.
+
+        Returns:
+            An :class:`EventFrame` populated from the API response.
+
+        Raises:
+            NotFoundError: If no Event Frame with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
         resp = self._client.get(f"/eventframes/{quote(web_id, safe='')}")
-        resp.raise_for_status()
+        raise_for_response(resp)
         return EventFrame.model_validate(resp.json())
 
     def search(
@@ -39,6 +52,13 @@ class EventFramesMixin:
             start_time: Start of the time range.
             end_time: End of the time range.
             max_count: Maximum results to return.
+
+        Returns:
+            List of :class:`EventFrame` objects matching the search criteria.
+
+        Raises:
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
         """
         params: dict[str, Any] = {
             "q": query,
@@ -49,7 +69,7 @@ class EventFramesMixin:
         if database_web_id:
             params["databaseWebId"] = database_web_id
         resp = self._client.get("/eventframes/search", params=params)
-        resp.raise_for_status()
+        raise_for_response(resp)
         data = resp.json()
         items = data.get("Items", []) if isinstance(data, dict) else data
         return [EventFrame.model_validate(item) for item in items]
@@ -62,7 +82,22 @@ class EventFramesMixin:
         end_time: str = "*",
         max_count: int = 100,
     ) -> list[EventFrame]:
-        """Get Event Frames associated with an element."""
+        """Get Event Frames associated with an element.
+
+        Args:
+            element_web_id: WebID of the AF element.
+            start_time: Start of the time range.
+            end_time: End of the time range.
+            max_count: Maximum results to return.
+
+        Returns:
+            List of :class:`EventFrame` objects.
+
+        Raises:
+            NotFoundError: If the element WebID is not found.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
         resp = self._client.get(
             f"/elements/{quote(element_web_id, safe='')}/eventframes",
             params={
@@ -71,18 +106,27 @@ class EventFramesMixin:
                 "maxCount": max_count,
             },
         )
-        resp.raise_for_status()
+        raise_for_response(resp)
         data = resp.json()
         items = data.get("Items", []) if isinstance(data, dict) else data
         return [EventFrame.model_validate(item) for item in items]
 
     def acknowledge(self, web_id: str) -> None:
-        """Acknowledge an Event Frame."""
+        """Acknowledge an Event Frame.
+
+        Args:
+            web_id: WebID of the Event Frame to acknowledge.
+
+        Raises:
+            NotFoundError: If no Event Frame with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
         resp = self._client.patch(
             f"/eventframes/{quote(web_id, safe='')}",
             json={"IsAcknowledged": True},
         )
-        resp.raise_for_status()
+        raise_for_response(resp)
 
     def create(
         self,
@@ -95,7 +139,22 @@ class EventFramesMixin:
         template_name: str = "",
         severity: str = "None",
     ) -> None:
-        """Create an Event Frame on an element."""
+        """Create an Event Frame on an element.
+
+        Args:
+            element_web_id: WebID of the parent AF element.
+            name: Name for the new Event Frame.
+            start_time: Start time as a PI time string.
+            end_time: End time as a PI time string.
+            description: Optional description.
+            template_name: Optional AF event frame template name.
+            severity: Severity level. Defaults to ``"None"``.
+
+        Raises:
+            NotFoundError: If the element WebID is not found.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
         body: dict[str, Any] = {
             "Name": name,
             "StartTime": start_time,
@@ -111,12 +170,21 @@ class EventFramesMixin:
             f"/elements/{quote(element_web_id, safe='')}/eventframes",
             json=body,
         )
-        resp.raise_for_status()
+        raise_for_response(resp)
 
     def delete(self, web_id: str) -> None:
-        """Delete an Event Frame."""
+        """Delete an Event Frame.
+
+        Args:
+            web_id: WebID of the Event Frame to delete.
+
+        Raises:
+            NotFoundError: If no Event Frame with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
         resp = self._client.delete(f"/eventframes/{quote(web_id, safe='')}")
-        resp.raise_for_status()
+        raise_for_response(resp)
 
 
 class AsyncEventFramesMixin:
@@ -125,9 +193,21 @@ class AsyncEventFramesMixin:
     _client: httpx.AsyncClient
 
     async def get_by_web_id(self, web_id: str) -> EventFrame:
-        """Look up an Event Frame by its WebID (async)."""
+        """Look up an Event Frame by its WebID.
+
+        Args:
+            web_id: WebID of the Event Frame.
+
+        Returns:
+            An :class:`EventFrame` populated from the API response.
+
+        Raises:
+            NotFoundError: If no Event Frame with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
         resp = await self._client.get(f"/eventframes/{quote(web_id, safe='')}")
-        resp.raise_for_status()
+        await raise_for_response_async(resp)
         return EventFrame.model_validate(resp.json())
 
     async def search(
@@ -139,7 +219,22 @@ class AsyncEventFramesMixin:
         end_time: str = "*",
         max_count: int = 100,
     ) -> list[EventFrame]:
-        """Search for Event Frames (async)."""
+        """Search for Event Frames.
+
+        Args:
+            query: Search query string.
+            database_web_id: Limit search to a specific AF database.
+            start_time: Start of the time range.
+            end_time: End of the time range.
+            max_count: Maximum results to return.
+
+        Returns:
+            List of :class:`EventFrame` objects matching the search criteria.
+
+        Raises:
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
         params: dict[str, Any] = {
             "q": query,
             "startTime": start_time,
@@ -149,7 +244,7 @@ class AsyncEventFramesMixin:
         if database_web_id:
             params["databaseWebId"] = database_web_id
         resp = await self._client.get("/eventframes/search", params=params)
-        resp.raise_for_status()
+        await raise_for_response_async(resp)
         data = resp.json()
         items = data.get("Items", []) if isinstance(data, dict) else data
         return [EventFrame.model_validate(item) for item in items]
@@ -162,7 +257,22 @@ class AsyncEventFramesMixin:
         end_time: str = "*",
         max_count: int = 100,
     ) -> list[EventFrame]:
-        """Get Event Frames associated with an element (async)."""
+        """Get Event Frames associated with an element.
+
+        Args:
+            element_web_id: WebID of the AF element.
+            start_time: Start of the time range.
+            end_time: End of the time range.
+            max_count: Maximum results to return.
+
+        Returns:
+            List of :class:`EventFrame` objects.
+
+        Raises:
+            NotFoundError: If the element WebID is not found.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
         resp = await self._client.get(
             f"/elements/{quote(element_web_id, safe='')}/eventframes",
             params={
@@ -171,18 +281,27 @@ class AsyncEventFramesMixin:
                 "maxCount": max_count,
             },
         )
-        resp.raise_for_status()
+        await raise_for_response_async(resp)
         data = resp.json()
         items = data.get("Items", []) if isinstance(data, dict) else data
         return [EventFrame.model_validate(item) for item in items]
 
     async def acknowledge(self, web_id: str) -> None:
-        """Acknowledge an Event Frame (async)."""
+        """Acknowledge an Event Frame.
+
+        Args:
+            web_id: WebID of the Event Frame to acknowledge.
+
+        Raises:
+            NotFoundError: If no Event Frame with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
         resp = await self._client.patch(
             f"/eventframes/{quote(web_id, safe='')}",
             json={"IsAcknowledged": True},
         )
-        resp.raise_for_status()
+        await raise_for_response_async(resp)
 
     async def create(
         self,
@@ -195,7 +314,22 @@ class AsyncEventFramesMixin:
         template_name: str = "",
         severity: str = "None",
     ) -> None:
-        """Create an Event Frame on an element (async)."""
+        """Create an Event Frame on an element.
+
+        Args:
+            element_web_id: WebID of the parent AF element.
+            name: Name for the new Event Frame.
+            start_time: Start time as a PI time string.
+            end_time: End time as a PI time string.
+            description: Optional description.
+            template_name: Optional AF event frame template name.
+            severity: Severity level. Defaults to ``"None"``.
+
+        Raises:
+            NotFoundError: If the element WebID is not found.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
         body: dict[str, Any] = {
             "Name": name,
             "StartTime": start_time,
@@ -211,9 +345,18 @@ class AsyncEventFramesMixin:
             f"/elements/{quote(element_web_id, safe='')}/eventframes",
             json=body,
         )
-        resp.raise_for_status()
+        await raise_for_response_async(resp)
 
     async def delete(self, web_id: str) -> None:
-        """Delete an Event Frame (async)."""
+        """Delete an Event Frame.
+
+        Args:
+            web_id: WebID of the Event Frame to delete.
+
+        Raises:
+            NotFoundError: If no Event Frame with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
         resp = await self._client.delete(f"/eventframes/{quote(web_id, safe='')}")
-        resp.raise_for_status()
+        await raise_for_response_async(resp)

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import httpx
+import pytest
 from conftest import (
     AF_DATABASE,
     ASSET_SERVER,
@@ -10,6 +11,7 @@ from conftest import (
     ELEMENT_PUMP,
 )
 
+from pisharp_piwebapi.exceptions import AuthenticationError, NotFoundError
 from pisharp_piwebapi.models import PIAssetServer, PIDatabase, PIDataServer, PIElement
 
 
@@ -85,3 +87,37 @@ class TestDatabasesSync:
         assert len(elements) == 1
         assert isinstance(elements[0], PIElement)
         assert elements[0].name == "Pump-001"
+
+
+class TestServersErrorPaths:
+    """Verify servers/databases modules raise SDK exceptions, not raw httpx errors."""
+
+    def test_asset_server_not_found(self, sync_client):
+        client, mock = sync_client
+        mock.get("/assetservers/MISSING").mock(
+            return_value=httpx.Response(
+                404, json={"Message": "Asset server not found."}
+            )
+        )
+        with pytest.raises(NotFoundError):
+            client.assetservers.get_by_web_id("MISSING")
+
+    def test_data_server_unauthorized(self, sync_client):
+        client, mock = sync_client
+        mock.get("/dataservers").mock(
+            return_value=httpx.Response(
+                401, json={"Message": "Unauthorized."}
+            )
+        )
+        with pytest.raises(AuthenticationError):
+            client.dataservers.list_all()
+
+    def test_database_not_found(self, sync_client):
+        client, mock = sync_client
+        mock.get("/assetdatabases/MISSING").mock(
+            return_value=httpx.Response(
+                404, json={"Message": "Database not found."}
+            )
+        )
+        with pytest.raises(NotFoundError):
+            client.databases.get_by_web_id("MISSING")
