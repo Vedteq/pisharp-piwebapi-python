@@ -125,3 +125,77 @@ class TestElementsSync:
             client.elements.get_attribute_by_path(
                 r"\\AF\Production\Pump-001|Nonexistent"
             )
+
+    def test_create_attribute(self, sync_client):
+        client, mock = sync_client
+        route = mock.post(f"/elements/{ELEM_WEB_ID}/attributes").mock(
+            return_value=httpx.Response(201)
+        )
+        client.elements.create_attribute(
+            ELEM_WEB_ID,
+            "Vibration",
+            description="Vibration sensor",
+            type_qualifier="Double",
+        )
+        assert route.called
+        body = route.calls.last.request.read()
+        import json
+
+        payload = json.loads(body)
+        assert payload["Name"] == "Vibration"
+        assert payload["Description"] == "Vibration sensor"
+        assert payload["TypeQualifier"] == "Double"
+
+    def test_create_attribute_minimal(self, sync_client):
+        client, mock = sync_client
+        route = mock.post(f"/elements/{ELEM_WEB_ID}/attributes").mock(
+            return_value=httpx.Response(201)
+        )
+        client.elements.create_attribute(ELEM_WEB_ID, "Pressure")
+        assert route.called
+        import json
+
+        payload = json.loads(route.calls.last.request.read())
+        assert payload == {"Name": "Pressure"}
+
+    def test_update_attribute(self, sync_client):
+        client, mock = sync_client
+        attr_wid = ATTRIBUTE_TEMP["WebId"]
+        route = mock.patch(f"/attributes/{attr_wid}").mock(
+            return_value=httpx.Response(204)
+        )
+        client.elements.update_attribute(
+            attr_wid, {"Description": "Updated description"}
+        )
+        assert route.called
+
+    def test_update_attribute_not_found(self, sync_client):
+        client, mock = sync_client
+        mock.patch("/attributes/BOGUS").mock(
+            return_value=httpx.Response(
+                404, json={"Message": "Attribute not found."}
+            )
+        )
+        with pytest.raises(NotFoundError):
+            client.elements.update_attribute(
+                "BOGUS", {"Description": "nope"}
+            )
+
+    def test_delete_attribute(self, sync_client):
+        client, mock = sync_client
+        attr_wid = ATTRIBUTE_TEMP["WebId"]
+        route = mock.delete(f"/attributes/{attr_wid}").mock(
+            return_value=httpx.Response(204)
+        )
+        client.elements.delete_attribute(attr_wid)
+        assert route.called
+
+    def test_delete_attribute_not_found(self, sync_client):
+        client, mock = sync_client
+        mock.delete("/attributes/BOGUS").mock(
+            return_value=httpx.Response(
+                404, json={"Message": "Attribute not found."}
+            )
+        )
+        with pytest.raises(NotFoundError):
+            client.elements.delete_attribute("BOGUS")

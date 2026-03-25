@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import json
+
 import httpx
+import pytest
 from conftest import (
     AF_DATABASE,
     ATTRIBUTE_SPEED,
@@ -11,6 +14,7 @@ from conftest import (
     ELEMENT_PUMP,
 )
 
+from pisharp_piwebapi.exceptions import NotFoundError
 from pisharp_piwebapi.models import PIAttribute, PIElement
 
 ELEM_WEB_ID = ELEMENT_PUMP["WebId"]
@@ -101,3 +105,72 @@ class TestElementsAsync:
         )
         assert isinstance(attr, PIAttribute)
         assert attr.name == "Temperature"
+
+    async def test_create_attribute(self, async_client):
+        client, mock = async_client
+        route = mock.post(f"/elements/{ELEM_WEB_ID}/attributes").mock(
+            return_value=httpx.Response(201)
+        )
+        await client.elements.create_attribute(
+            ELEM_WEB_ID,
+            "Vibration",
+            description="Vibration sensor",
+            type_qualifier="Double",
+        )
+        assert route.called
+        payload = json.loads(route.calls.last.request.read())
+        assert payload["Name"] == "Vibration"
+        assert payload["Description"] == "Vibration sensor"
+        assert payload["TypeQualifier"] == "Double"
+
+    async def test_create_attribute_minimal(self, async_client):
+        client, mock = async_client
+        route = mock.post(f"/elements/{ELEM_WEB_ID}/attributes").mock(
+            return_value=httpx.Response(201)
+        )
+        await client.elements.create_attribute(ELEM_WEB_ID, "Pressure")
+        assert route.called
+        payload = json.loads(route.calls.last.request.read())
+        assert payload == {"Name": "Pressure"}
+
+    async def test_update_attribute(self, async_client):
+        client, mock = async_client
+        attr_wid = ATTRIBUTE_TEMP["WebId"]
+        route = mock.patch(f"/attributes/{attr_wid}").mock(
+            return_value=httpx.Response(204)
+        )
+        await client.elements.update_attribute(
+            attr_wid, {"Description": "Updated description"}
+        )
+        assert route.called
+
+    async def test_update_attribute_not_found(self, async_client):
+        client, mock = async_client
+        mock.patch("/attributes/BOGUS").mock(
+            return_value=httpx.Response(
+                404, json={"Message": "Attribute not found."}
+            )
+        )
+        with pytest.raises(NotFoundError):
+            await client.elements.update_attribute(
+                "BOGUS", {"Description": "nope"}
+            )
+
+    async def test_delete_attribute(self, async_client):
+        client, mock = async_client
+        attr_wid = ATTRIBUTE_TEMP["WebId"]
+        route = mock.delete(f"/attributes/{attr_wid}").mock(
+            return_value=httpx.Response(204)
+        )
+        await client.elements.delete_attribute(attr_wid)
+        assert route.called
+
+    async def test_delete_attribute_not_found(self, async_client):
+        client, mock = async_client
+        mock.delete("/attributes/BOGUS").mock(
+            return_value=httpx.Response(
+                404, json={"Message": "Attribute not found."}
+            )
+        )
+        with pytest.raises(NotFoundError):
+            await client.elements.delete_attribute("BOGUS")

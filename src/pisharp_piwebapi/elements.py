@@ -325,6 +325,99 @@ class ElementsMixin:
         )
         raise_for_response(resp)
 
+    def create_attribute(
+        self,
+        element_web_id: str,
+        name: str,
+        *,
+        description: str = "",
+        type_qualifier: str = "",
+        default_value: Any = None,
+        config_string: str = "",
+        is_configuration_item: bool = False,
+    ) -> None:
+        """Create a new AF attribute on an element.
+
+        Calls ``POST /elements/{webId}/attributes``.
+
+        Args:
+            element_web_id: WebID of the parent AF element.
+            name: Name for the new attribute.
+            description: Optional description.
+            type_qualifier: The PI AF value type, e.g. ``"Double"``,
+                ``"String"``, ``"Int32"``. If omitted the server infers
+                from ``default_value`` or uses ``"Double"``.
+            default_value: Optional default value for the attribute.
+            config_string: Optional data reference config string
+                (e.g. a PI point reference like
+                ``"\\\\SERVER\\sinusoid;ReadOnly=False"``).
+            is_configuration_item: If ``True``, the attribute stores
+                configuration data rather than time-series data.
+
+        Raises:
+            NotFoundError: If the element WebID is not found.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        body: dict[str, Any] = {"Name": name}
+        if description:
+            body["Description"] = description
+        if type_qualifier:
+            body["TypeQualifier"] = type_qualifier
+        if default_value is not None:
+            body["DefaultValue"] = default_value
+        if config_string:
+            body["ConfigString"] = config_string
+        if is_configuration_item:
+            body["IsConfigurationItem"] = is_configuration_item
+        resp = self._client.post(
+            f"/elements/{quote(element_web_id, safe='')}/attributes",
+            json=body,
+        )
+        raise_for_response(resp)
+
+    def update_attribute(
+        self,
+        web_id: str,
+        body: dict[str, Any],
+    ) -> None:
+        """Update an existing AF attribute.
+
+        Sends a ``PATCH /attributes/{webId}`` request with the given body.
+        Only include the fields you want to change (e.g.
+        ``{"Description": "Updated desc"}``).
+
+        Args:
+            web_id: WebID of the AF attribute to update.
+            body: Dictionary of attribute properties to update.  Keys use
+                PI Web API PascalCase names (e.g. ``"Name"``,
+                ``"Description"``, ``"DefaultValue"``, ``"ConfigString"``).
+
+        Raises:
+            NotFoundError: If the attribute WebID is not found.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = self._client.patch(
+            f"/attributes/{quote(web_id, safe='')}",
+            json=body,
+        )
+        raise_for_response(resp)
+
+    def delete_attribute(self, web_id: str) -> None:
+        """Delete an AF attribute.
+
+        Args:
+            web_id: WebID of the AF attribute to delete.
+
+        Raises:
+            NotFoundError: If the attribute WebID is not found.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = self._client.delete(f"/attributes/{quote(web_id, safe='')}")
+        raise_for_response(resp)
+
     def delete_element(self, web_id: str) -> None:
         """Delete an AF element.
 
@@ -616,6 +709,94 @@ class AsyncElementsMixin:
         resp = await self._client.get("/attributes", params={"path": path})
         await raise_for_response_async(resp)
         return PIAttribute.model_validate(resp.json())
+
+    async def create_attribute(
+        self,
+        element_web_id: str,
+        name: str,
+        *,
+        description: str = "",
+        type_qualifier: str = "",
+        default_value: Any = None,
+        config_string: str = "",
+        is_configuration_item: bool = False,
+    ) -> None:
+        """Create a new AF attribute on an element.
+
+        Calls ``POST /elements/{webId}/attributes``.
+
+        Args:
+            element_web_id: WebID of the parent AF element.
+            name: Name for the new attribute.
+            description: Optional description.
+            type_qualifier: The PI AF value type, e.g. ``"Double"``,
+                ``"String"``, ``"Int32"``.
+            default_value: Optional default value for the attribute.
+            config_string: Optional data reference config string.
+            is_configuration_item: If ``True``, the attribute stores
+                configuration data rather than time-series data.
+
+        Raises:
+            NotFoundError: If the element WebID is not found.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        body: dict[str, Any] = {"Name": name}
+        if description:
+            body["Description"] = description
+        if type_qualifier:
+            body["TypeQualifier"] = type_qualifier
+        if default_value is not None:
+            body["DefaultValue"] = default_value
+        if config_string:
+            body["ConfigString"] = config_string
+        if is_configuration_item:
+            body["IsConfigurationItem"] = is_configuration_item
+        resp = await self._client.post(
+            f"/elements/{quote(element_web_id, safe='')}/attributes",
+            json=body,
+        )
+        await raise_for_response_async(resp)
+
+    async def update_attribute(
+        self,
+        web_id: str,
+        body: dict[str, Any],
+    ) -> None:
+        """Update an existing AF attribute.
+
+        Sends a ``PATCH /attributes/{webId}`` request with the given body.
+
+        Args:
+            web_id: WebID of the AF attribute to update.
+            body: Dictionary of attribute properties to update.  Keys use
+                PI Web API PascalCase names (e.g. ``"Name"``,
+                ``"Description"``, ``"DefaultValue"``).
+
+        Raises:
+            NotFoundError: If the attribute WebID is not found.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = await self._client.patch(
+            f"/attributes/{quote(web_id, safe='')}",
+            json=body,
+        )
+        await raise_for_response_async(resp)
+
+    async def delete_attribute(self, web_id: str) -> None:
+        """Delete an AF attribute.
+
+        Args:
+            web_id: WebID of the AF attribute to delete.
+
+        Raises:
+            NotFoundError: If the attribute WebID is not found.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = await self._client.delete(f"/attributes/{quote(web_id, safe='')}")
+        await raise_for_response_async(resp)
 
     async def create_element(
         self,
