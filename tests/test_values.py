@@ -151,6 +151,37 @@ def test_get_recorded_passes_query_params() -> None:
 
 
 @respx.mock
+def test_get_recorded_filter_expression() -> None:
+    """get_recorded forwards filterExpression query parameter."""
+    route = respx.get(f"{BASE}/streams/{WEB_ID}/recorded").mock(
+        return_value=httpx.Response(200, json=RECORDED_PAYLOAD)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        streams = _SyncStreams(client)
+        streams.get_recorded(WEB_ID, filter_expression="'.' > 50")
+
+    assert route.called
+    request = route.calls.last.request
+    assert b"filterExpression" in request.url.query
+
+
+@respx.mock
+def test_get_recorded_no_filter_expression_by_default() -> None:
+    """get_recorded omits filterExpression when not provided."""
+    route = respx.get(f"{BASE}/streams/{WEB_ID}/recorded").mock(
+        return_value=httpx.Response(200, json=RECORDED_PAYLOAD)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        streams = _SyncStreams(client)
+        streams.get_recorded(WEB_ID)
+
+    request = route.calls.last.request
+    assert b"filterExpression" not in request.url.query
+
+
+@respx.mock
 def test_get_recorded_server_error_raises() -> None:
     """get_recorded raises ServerError on 500."""
     respx.get(f"{BASE}/streams/{WEB_ID}/recorded").mock(
@@ -355,6 +386,21 @@ async def test_async_get_recorded_happy_path() -> None:
         vals = await streams.get_recorded(WEB_ID)
 
     assert len(vals) == 2
+
+
+@respx.mock
+async def test_async_get_recorded_filter_expression() -> None:
+    """Async get_recorded forwards filterExpression query parameter."""
+    route = respx.get(f"{BASE}/streams/{WEB_ID}/recorded").mock(
+        return_value=httpx.Response(200, json=RECORDED_PAYLOAD)
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        streams = _AsyncStreams(client)
+        await streams.get_recorded(WEB_ID, filter_expression="'.' > 50")
+
+    request = route.calls.last.request
+    assert b"filterExpression" in request.url.query
 
 
 # ===========================================================================

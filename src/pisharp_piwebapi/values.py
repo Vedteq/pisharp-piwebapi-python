@@ -42,6 +42,8 @@ class StreamsMixin:
         start_time: str = "-1h",
         end_time: str = "*",
         max_count: int = 1000,
+        *,
+        filter_expression: str | None = None,
     ) -> StreamValues:
         """Read recorded (historian) values from a stream.
 
@@ -52,6 +54,11 @@ class StreamsMixin:
             end_time: End time as a PI time string. ``"*"`` means now.
                 Defaults to ``"*"``.
             max_count: Maximum number of values to return. Defaults to ``1000``.
+            filter_expression: An optional server-side filter expression.
+                Only events that satisfy the expression are returned.
+                Uses PI performance equation syntax, e.g.
+                ``"'.' > 50"`` to return only values greater than 50.
+                Defaults to ``None`` (no filtering).
 
         Returns:
             A :class:`StreamValues` collection containing the recorded values.
@@ -61,13 +68,16 @@ class StreamsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        params: dict[str, str | int] = {
+            "startTime": start_time,
+            "endTime": end_time,
+            "maxCount": max_count,
+        }
+        if filter_expression is not None:
+            params["filterExpression"] = filter_expression
         resp = self._client.get(
             f"/streams/{quote(web_id, safe='')}/recorded",
-            params={
-                "startTime": start_time,
-                "endTime": end_time,
-                "maxCount": max_count,
-            },
+            params=params,
         )
         raise_for_response(resp)
         return StreamValues.model_validate(resp.json())
@@ -319,6 +329,8 @@ class AsyncStreamsMixin:
         start_time: str = "-1h",
         end_time: str = "*",
         max_count: int = 1000,
+        *,
+        filter_expression: str | None = None,
     ) -> StreamValues:
         """Read recorded (historian) values from a stream.
 
@@ -327,6 +339,11 @@ class AsyncStreamsMixin:
             start_time: Start time as a PI time string. Defaults to ``"-1h"``.
             end_time: End time as a PI time string. Defaults to ``"*"`` (now).
             max_count: Maximum number of values to return. Defaults to ``1000``.
+            filter_expression: An optional server-side filter expression.
+                Only events that satisfy the expression are returned.
+                Uses PI performance equation syntax, e.g.
+                ``"'.' > 50"`` to return only values greater than 50.
+                Defaults to ``None`` (no filtering).
 
         Returns:
             A :class:`StreamValues` collection containing the recorded values.
@@ -336,13 +353,16 @@ class AsyncStreamsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        params: dict[str, str | int] = {
+            "startTime": start_time,
+            "endTime": end_time,
+            "maxCount": max_count,
+        }
+        if filter_expression is not None:
+            params["filterExpression"] = filter_expression
         resp = await self._client.get(
             f"/streams/{quote(web_id, safe='')}/recorded",
-            params={
-                "startTime": start_time,
-                "endTime": end_time,
-                "maxCount": max_count,
-            },
+            params=params,
         )
         await raise_for_response_async(resp)
         return StreamValues.model_validate(resp.json())
