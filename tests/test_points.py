@@ -470,18 +470,16 @@ async def test_async_get_data_server_not_found_raises() -> None:
 
 @respx.mock
 def test_create_point_happy_path() -> None:
-    """create_point POSTs to /dataservers/{webId}/points and returns a PIPoint."""
+    """create_point POSTs to /dataservers/{webId}/points and returns None."""
     route = respx.post(f"{BASE}/dataservers/{DS_WEB_ID}/points").mock(
-        return_value=httpx.Response(201, json=POINT_PAYLOAD)
+        return_value=httpx.Response(201)
     )
 
     with httpx.Client(base_url=BASE) as client:
         pts = _SyncPoints(client)
-        point = pts.create_point(DS_WEB_ID, "sinusoid", engineering_units="degC")
+        result = pts.create_point(DS_WEB_ID, "sinusoid", engineering_units="degC")
 
-    assert isinstance(point, PIPoint)
-    assert point.name == "sinusoid"
-    assert point.web_id == "P0ABC123"
+    assert result is None
     assert route.called
 
 
@@ -489,7 +487,7 @@ def test_create_point_happy_path() -> None:
 def test_create_point_sends_correct_body() -> None:
     """create_point includes all standard fields in the JSON body."""
     route = respx.post(f"{BASE}/dataservers/{DS_WEB_ID}/points").mock(
-        return_value=httpx.Response(201, json=POINT_PAYLOAD)
+        return_value=httpx.Response(201)
     )
 
     with httpx.Client(base_url=BASE) as client:
@@ -516,7 +514,7 @@ def test_create_point_sends_correct_body() -> None:
 def test_create_point_with_extra_fields() -> None:
     """create_point merges extra_fields into the request body."""
     route = respx.post(f"{BASE}/dataservers/{DS_WEB_ID}/points").mock(
-        return_value=httpx.Response(201, json=POINT_PAYLOAD)
+        return_value=httpx.Response(201)
     )
 
     with httpx.Client(base_url=BASE) as client:
@@ -618,24 +616,23 @@ def test_delete_point_auth_error_raises() -> None:
 
 @respx.mock
 async def test_async_create_point_happy_path() -> None:
-    """Async create_point returns a PIPoint on 201."""
+    """Async create_point returns None on 201."""
     respx.post(f"{BASE}/dataservers/{DS_WEB_ID}/points").mock(
-        return_value=httpx.Response(201, json=POINT_PAYLOAD)
+        return_value=httpx.Response(201)
     )
 
     async with httpx.AsyncClient(base_url=BASE) as client:
         pts = _AsyncPoints(client)
-        point = await pts.create_point(DS_WEB_ID, "sinusoid")
+        result = await pts.create_point(DS_WEB_ID, "sinusoid")
 
-    assert isinstance(point, PIPoint)
-    assert point.name == "sinusoid"
+    assert result is None
 
 
 @respx.mock
 async def test_async_create_point_sends_correct_body() -> None:
     """Async create_point sends the full body including all standard fields."""
     route = respx.post(f"{BASE}/dataservers/{DS_WEB_ID}/points").mock(
-        return_value=httpx.Response(201, json=POINT_PAYLOAD)
+        return_value=httpx.Response(201)
     )
 
     async with httpx.AsyncClient(base_url=BASE) as client:

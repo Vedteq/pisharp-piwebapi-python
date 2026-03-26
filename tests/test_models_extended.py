@@ -53,6 +53,28 @@ class TestEventFrame:
         assert ef.template_name == ""
         assert ef.ref_element_web_ids == []
 
+    def test_open_event_frame_null_end_time(self):
+        """Open (in-progress) event frames have null EndTime."""
+        data = {
+            "WebId": "EF003",
+            "Name": "In Progress",
+            "StartTime": "2024-06-15T10:00:00Z",
+            "EndTime": None,
+        }
+        ef = EventFrame.model_validate(data)
+        assert ef.end_time is None
+        assert ef.start_time is not None
+
+    def test_open_event_frame_missing_end_time(self):
+        """Open event frames may omit EndTime entirely."""
+        data = {
+            "WebId": "EF004",
+            "Name": "In Progress No End",
+            "StartTime": "2024-06-15T10:00:00Z",
+        }
+        ef = EventFrame.model_validate(data)
+        assert ef.end_time is None
+
 
 class TestAnalysis:
     def test_from_api_response(self):

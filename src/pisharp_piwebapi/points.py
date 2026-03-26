@@ -135,10 +135,11 @@ class PointsMixin:
         engineering_units: str = "",
         future: bool = False,
         extra_fields: dict[str, Any] | None = None,
-    ) -> PIPoint:
+    ) -> None:
         """Create a new PI Point on a PI Data Server.
 
-        Calls ``POST /dataservers/{webId}/points``.
+        Calls ``POST /dataservers/{webId}/points``.  PI Web API returns
+        HTTP 201 with an empty body on success.
 
         Args:
             data_server_web_id: WebID of the PI Data Server that will own the
@@ -155,10 +156,6 @@ class PointsMixin:
             extra_fields: Additional key-value pairs merged into the request
                 body as-is, for any server-specific attributes not covered by
                 the standard parameters.
-
-        Returns:
-            A :class:`PIPoint` populated from the server's response body
-            (PI Web API returns the created point with its assigned WebID).
 
         Raises:
             AuthenticationError: If the request is rejected as unauthorized.
@@ -181,7 +178,6 @@ class PointsMixin:
             json=body,
         )
         raise_for_response(resp)
-        return PIPoint.model_validate(resp.json())
 
     def delete_point(self, web_id: str) -> None:
         """Delete a PI Point from the PI Data Server.
@@ -322,10 +318,11 @@ class AsyncPointsMixin:
         engineering_units: str = "",
         future: bool = False,
         extra_fields: dict[str, Any] | None = None,
-    ) -> PIPoint:
+    ) -> None:
         """Create a new PI Point on a PI Data Server.
 
-        Calls ``POST /dataservers/{webId}/points``.
+        Calls ``POST /dataservers/{webId}/points``.  PI Web API returns
+        HTTP 201 with an empty body on success.
 
         Args:
             data_server_web_id: WebID of the PI Data Server that will own the
@@ -342,9 +339,6 @@ class AsyncPointsMixin:
             extra_fields: Additional key-value pairs merged into the request
                 body for server-specific attributes not covered by the
                 standard parameters.
-
-        Returns:
-            A :class:`PIPoint` populated from the server's response body.
 
         Raises:
             AuthenticationError: If the request is rejected as unauthorized.
@@ -366,7 +360,6 @@ class AsyncPointsMixin:
             json=body,
         )
         await raise_for_response_async(resp)
-        return PIPoint.model_validate(resp.json())
 
     async def delete_point(self, web_id: str) -> None:
         """Delete a PI Point from the PI Data Server.

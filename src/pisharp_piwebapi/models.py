@@ -182,7 +182,7 @@ class EventFrame(BaseModel):
     name: str = Field(alias="Name")
     description: str = Field(alias="Description", default="")
     start_time: datetime = Field(alias="StartTime")
-    end_time: datetime = Field(alias="EndTime")
+    end_time: datetime | None = Field(alias="EndTime", default=None)
     template_name: str = Field(alias="TemplateName", default="")
     severity: str = Field(alias="Severity", default="None")
     acknowledged_by: str = Field(alias="AcknowledgedBy", default="")
