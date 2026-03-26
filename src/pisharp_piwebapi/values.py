@@ -162,6 +162,31 @@ class StreamsMixin:
         raise_for_response(resp)
         return StreamSummary.model_validate(resp.json())
 
+    def get_end(self, web_id: str) -> StreamValue:
+        """Read the end-of-stream (last archived) value.
+
+        Unlike :meth:`get_value` which returns the current snapshot,
+        ``get_end`` returns the most recent event stored in the archive.
+        This is useful when the snapshot may have been overwritten by an
+        out-of-order event.
+
+        Calls ``GET /streams/{webId}/end``.
+
+        Args:
+            web_id: WebID of the PI Point or AF attribute.
+
+        Returns:
+            The last archived :class:`StreamValue`.
+
+        Raises:
+            NotFoundError: If no stream with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = self._client.get(f"/streams/{quote(web_id, safe='')}/end")
+        raise_for_response(resp)
+        return StreamValue.model_validate(resp.json())
+
     def get_plot(
         self,
         web_id: str,
@@ -401,6 +426,31 @@ class AsyncStreamsMixin:
         )
         await raise_for_response_async(resp)
         return StreamSummary.model_validate(resp.json())
+
+    async def get_end(self, web_id: str) -> StreamValue:
+        """Read the end-of-stream (last archived) value.
+
+        Unlike :meth:`get_value` which returns the current snapshot,
+        ``get_end`` returns the most recent event stored in the archive.
+
+        Calls ``GET /streams/{webId}/end``.
+
+        Args:
+            web_id: WebID of the PI Point or AF attribute.
+
+        Returns:
+            The last archived :class:`StreamValue`.
+
+        Raises:
+            NotFoundError: If no stream with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = await self._client.get(
+            f"/streams/{quote(web_id, safe='')}/end"
+        )
+        await raise_for_response_async(resp)
+        return StreamValue.model_validate(resp.json())
 
     async def get_plot(
         self,

@@ -734,3 +734,73 @@ async def test_async_get_plot_404_raises() -> None:
         streams = _AsyncStreams(client)
         with pytest.raises(NotFoundError):
             await streams.get_plot(WEB_ID)
+
+
+# ===========================================================================
+# Sync — get_end
+# ===========================================================================
+
+
+@respx.mock
+def test_get_end_happy_path() -> None:
+    """get_end returns the last archived StreamValue."""
+    respx.get(f"{BASE}/streams/{WEB_ID}/end").mock(
+        return_value=httpx.Response(200, json=VALUE_PAYLOAD)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        streams = _SyncStreams(client)
+        val = streams.get_end(WEB_ID)
+
+    assert isinstance(val, StreamValue)
+    assert val.value == pytest.approx(3.14)
+    assert val.units_abbreviation == "degC"
+    assert val.good is True
+
+
+@respx.mock
+def test_get_end_404_raises() -> None:
+    """get_end raises NotFoundError on 404."""
+    respx.get(f"{BASE}/streams/{WEB_ID}/end").mock(
+        return_value=httpx.Response(404, json={"Message": "Stream not found"})
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        streams = _SyncStreams(client)
+        with pytest.raises(NotFoundError) as exc_info:
+            streams.get_end(WEB_ID)
+
+    assert exc_info.value.status_code == 404
+
+
+# ===========================================================================
+# Async — get_end
+# ===========================================================================
+
+
+@respx.mock
+async def test_async_get_end_happy_path() -> None:
+    """Async get_end returns the last archived StreamValue."""
+    respx.get(f"{BASE}/streams/{WEB_ID}/end").mock(
+        return_value=httpx.Response(200, json=VALUE_PAYLOAD)
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        streams = _AsyncStreams(client)
+        val = await streams.get_end(WEB_ID)
+
+    assert isinstance(val, StreamValue)
+    assert val.value == pytest.approx(3.14)
+
+
+@respx.mock
+async def test_async_get_end_404_raises() -> None:
+    """Async get_end raises NotFoundError on 404."""
+    respx.get(f"{BASE}/streams/{WEB_ID}/end").mock(
+        return_value=httpx.Response(404, json={"Message": "Not found"})
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        streams = _AsyncStreams(client)
+        with pytest.raises(NotFoundError):
+            await streams.get_end(WEB_ID)
