@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ssl
+import warnings
 from typing import Any
 
 import httpx
@@ -28,6 +29,8 @@ from pisharp_piwebapi.servers import (
 )
 from pisharp_piwebapi.streamsets import AsyncStreamSetsMixin, StreamSetsMixin
 from pisharp_piwebapi.values import AsyncStreamsMixin, StreamsMixin
+
+_VALID_AUTH_METHODS = {"basic", "kerberos", "ntlm"}
 
 
 def _build_event_hooks() -> dict[str, list[Any]]:
@@ -212,13 +215,34 @@ class PIWebAPIClient(BatchMixin, PaginationMixin):
             cert: Client certificate path or (cert, key) tuple.
             timeout: Request timeout in seconds.
         """
+        if auth_method not in _VALID_AUTH_METHODS:
+            raise ValueError(
+                f"Unknown auth_method {auth_method!r}. "
+                f"Choose from {sorted(_VALID_AUTH_METHODS)}."
+            )
+        if auth_method in ("basic", "ntlm") and not (username and password):
+            raise ValueError(
+                f"auth_method={auth_method!r} requires both "
+                "username and password."
+            )
+
         auth: httpx.Auth | None = None
         if auth_method == "kerberos":
             auth = kerberos_auth()
-        elif auth_method == "ntlm" and username and password:
-            auth = ntlm_auth(username, password)
-        elif username and password:
-            auth = basic_auth(username, password)
+        elif auth_method == "ntlm":
+            # username/password guaranteed non-None by validation above
+            auth = ntlm_auth(username, password)  # type: ignore[arg-type]
+        else:
+            auth = basic_auth(username, password)  # type: ignore[arg-type]
+
+        if not verify_ssl:
+            warnings.warn(
+                "verify_ssl=False disables TLS certificate validation. "
+                "Consider passing a CA bundle path or ssl.SSLContext "
+                "instead for production use.",
+                UserWarning,
+                stacklevel=2,
+            )
 
         ssl_context: ssl.SSLContext | bool = verify_ssl
         if cert:
@@ -294,13 +318,33 @@ class AsyncPIWebAPIClient(AsyncBatchMixin, AsyncPaginationMixin):
             cert: Client certificate path or (cert, key) tuple.
             timeout: Request timeout in seconds.
         """
+        if auth_method not in _VALID_AUTH_METHODS:
+            raise ValueError(
+                f"Unknown auth_method {auth_method!r}. "
+                f"Choose from {sorted(_VALID_AUTH_METHODS)}."
+            )
+        if auth_method in ("basic", "ntlm") and not (username and password):
+            raise ValueError(
+                f"auth_method={auth_method!r} requires both "
+                "username and password."
+            )
+
         auth: httpx.Auth | None = None
         if auth_method == "kerberos":
             auth = kerberos_auth()
-        elif auth_method == "ntlm" and username and password:
-            auth = ntlm_auth(username, password)
-        elif username and password:
-            auth = basic_auth(username, password)
+        elif auth_method == "ntlm":
+            auth = ntlm_auth(username, password)  # type: ignore[arg-type]
+        else:
+            auth = basic_auth(username, password)  # type: ignore[arg-type]
+
+        if not verify_ssl:
+            warnings.warn(
+                "verify_ssl=False disables TLS certificate validation. "
+                "Consider passing a CA bundle path or ssl.SSLContext "
+                "instead for production use.",
+                UserWarning,
+                stacklevel=2,
+            )
 
         ssl_context: ssl.SSLContext | bool = verify_ssl
         if cert:

@@ -232,6 +232,62 @@ def test_async_client_exposes_streamsets() -> None:
 # ===========================================================================
 
 
+# ===========================================================================
+# auth_method validation
+# ===========================================================================
+
+
+def test_sync_client_invalid_auth_method_raises_value_error() -> None:
+    """PIWebAPIClient rejects unknown auth_method values."""
+    with pytest.raises(ValueError, match="Unknown auth_method"):
+        PIWebAPIClient(BASE, username="u", password="p", auth_method="oauth")
+
+
+def test_async_client_invalid_auth_method_raises_value_error() -> None:
+    """AsyncPIWebAPIClient rejects unknown auth_method values."""
+    with pytest.raises(ValueError, match="Unknown auth_method"):
+        AsyncPIWebAPIClient(BASE, username="u", password="p", auth_method="saml")
+
+
+def test_sync_client_basic_without_credentials_raises() -> None:
+    """PIWebAPIClient rejects basic auth without credentials."""
+    with pytest.raises(ValueError, match="requires both username and password"):
+        PIWebAPIClient(BASE, auth_method="basic")
+
+
+def test_async_client_basic_without_credentials_raises() -> None:
+    """AsyncPIWebAPIClient rejects basic auth without credentials."""
+    with pytest.raises(ValueError, match="requires both username and password"):
+        AsyncPIWebAPIClient(BASE, auth_method="basic")
+
+
+# ===========================================================================
+# verify_ssl=False warning
+# ===========================================================================
+
+
+def test_sync_client_verify_ssl_false_warns() -> None:
+    """PIWebAPIClient warns when verify_ssl=False."""
+    with pytest.warns(UserWarning, match="verify_ssl=False"):
+        client = PIWebAPIClient(
+            BASE, username="u", password="p", verify_ssl=False
+        )
+        client.close()
+
+
+def test_async_client_verify_ssl_false_warns() -> None:
+    """AsyncPIWebAPIClient warns when verify_ssl=False."""
+    with pytest.warns(UserWarning, match="verify_ssl=False"):
+        AsyncPIWebAPIClient(
+            BASE, username="u", password="p", verify_ssl=False
+        )
+
+
+# ===========================================================================
+# NTLM auth_method — falls back gracefully when httpx-ntlm is absent
+# ===========================================================================
+
+
 def test_sync_client_ntlm_auth_method_raises_import_error() -> None:
     """PIWebAPIClient with auth_method='ntlm' raises ImportError if httpx-ntlm is absent."""
     try:
