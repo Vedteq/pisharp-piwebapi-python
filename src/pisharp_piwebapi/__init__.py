@@ -31,6 +31,7 @@ from pisharp_piwebapi.models import (
     StreamValues,
     TimeRule,
 )
+from pisharp_piwebapi.search import SearchResult
 
 __all__ = [
     "PIWebAPIClient",
@@ -59,6 +60,7 @@ __all__ = [
     "StreamValue",
     "StreamValues",
     "TimeRule",
+    "SearchResult",
     "stream_values_to_dataframe",
     "streamset_to_dataframe",
     "basic_auth",

@@ -20,6 +20,7 @@ from pisharp_piwebapi.eventframes import AsyncEventFramesMixin, EventFramesMixin
 from pisharp_piwebapi.exceptions import raise_for_response, raise_for_response_async
 from pisharp_piwebapi.pagination import AsyncPaginationMixin, PaginationMixin
 from pisharp_piwebapi.points import AsyncPointsMixin, PointsMixin
+from pisharp_piwebapi.search import AsyncSearchMixin, SearchMixin
 from pisharp_piwebapi.servers import (
     AssetServersMixin,
     AsyncAssetServersMixin,
@@ -76,6 +77,13 @@ class _StreamSetsAccessor(StreamSetsMixin):
 
 class _CalculationAccessor(CalculationMixin):
     """Namespace for calculation operations on the sync client."""
+
+    def __init__(self, client: httpx.Client) -> None:
+        self._client = client
+
+
+class _SearchAccessor(SearchMixin):
+    """Namespace for indexed AF search on the sync client."""
 
     def __init__(self, client: httpx.Client) -> None:
         self._client = client
@@ -146,6 +154,13 @@ class _AsyncStreamSetsAccessor(AsyncStreamSetsMixin):
 
 class _AsyncCalculationAccessor(AsyncCalculationMixin):
     """Namespace for calculation operations on the async client."""
+
+    def __init__(self, client: httpx.AsyncClient) -> None:
+        self._client = client
+
+
+class _AsyncSearchAccessor(AsyncSearchMixin):
+    """Namespace for indexed AF search on the async client."""
 
     def __init__(self, client: httpx.AsyncClient) -> None:
         self._client = client
@@ -279,6 +294,7 @@ class PIWebAPIClient(BatchMixin, PaginationMixin):
         self.streams = _StreamsAccessor(self._client)
         self.streamsets = _StreamSetsAccessor(self._client)
         self.calculation = _CalculationAccessor(self._client)
+        self.search = _SearchAccessor(self._client)
         self.elements = _ElementsAccessor(self._client)
         self.eventframes = _EventFramesAccessor(self._client)
         self.elementtemplates = _ElementTemplatesAccessor(self._client)
@@ -382,6 +398,7 @@ class AsyncPIWebAPIClient(AsyncBatchMixin, AsyncPaginationMixin):
         self.streams = _AsyncStreamsAccessor(self._client)
         self.streamsets = _AsyncStreamSetsAccessor(self._client)
         self.calculation = _AsyncCalculationAccessor(self._client)
+        self.search = _AsyncSearchAccessor(self._client)
         self.elements = _AsyncElementsAccessor(self._client)
         self.eventframes = _AsyncEventFramesAccessor(self._client)
         self.elementtemplates = _AsyncElementTemplatesAccessor(self._client)
