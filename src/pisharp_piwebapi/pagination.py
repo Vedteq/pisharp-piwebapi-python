@@ -3,11 +3,23 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
+from urllib.parse import urlparse
 
-from pisharp_piwebapi.exceptions import raise_for_response, raise_for_response_async
+from pisharp_piwebapi.exceptions import PIWebAPIError, raise_for_response, raise_for_response_async
 
 if TYPE_CHECKING:
     import httpx
+
+
+def _same_origin(base_url: str, next_url: str) -> bool:
+    """Check that *next_url* shares the same scheme and host as *base_url*.
+
+    This prevents SSRF attacks where a malicious server returns a
+    ``Links.Next`` pointing at an internal network address.
+    """
+    base = urlparse(base_url)
+    target = urlparse(next_url)
+    return (base.scheme, base.netloc) == (target.scheme, target.netloc)
 
 
 class PaginationMixin:
@@ -39,7 +51,8 @@ class PaginationMixin:
 
         Raises:
             AuthenticationError: If any request is rejected as unauthorized.
-            PIWebAPIError: For any other non-2xx response.
+            PIWebAPIError: If a pagination URL points to a different origin
+                (potential SSRF), or for any other non-2xx response.
         """
         all_items: list[dict[str, Any]] = []
         current_params = dict(params) if params else {}
@@ -50,6 +63,11 @@ class PaginationMixin:
                 break
 
             if url.startswith("http"):
+                if not _same_origin(str(self._client.base_url), url):
+                    raise PIWebAPIError(
+                        "Pagination URL origin mismatch — refusing to "
+                        "follow a URL that points to a different server."
+                    )
                 resp = self._client.get(url)
             else:
                 resp = self._client.get(url, params=current_params)
@@ -94,7 +112,8 @@ class AsyncPaginationMixin:
 
         Raises:
             AuthenticationError: If any request is rejected as unauthorized.
-            PIWebAPIError: For any other non-2xx response.
+            PIWebAPIError: If a pagination URL points to a different origin
+                (potential SSRF), or for any other non-2xx response.
         """
         all_items: list[dict[str, Any]] = []
         current_params = dict(params) if params else {}
@@ -105,6 +124,11 @@ class AsyncPaginationMixin:
                 break
 
             if url.startswith("http"):
+                if not _same_origin(str(self._client.base_url), url):
+                    raise PIWebAPIError(
+                        "Pagination URL origin mismatch — refusing to "
+                        "follow a URL that points to a different server."
+                    )
                 resp = await self._client.get(url)
             else:
                 resp = await self._client.get(url, params=current_params)

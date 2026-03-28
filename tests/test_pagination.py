@@ -6,7 +6,7 @@ import httpx
 import pytest
 import respx
 
-from pisharp_piwebapi.exceptions import ServerError
+from pisharp_piwebapi.exceptions import PIWebAPIError, ServerError
 from pisharp_piwebapi.pagination import AsyncPaginationMixin, PaginationMixin
 
 BASE = "https://piserver/piwebapi"
@@ -118,6 +118,41 @@ def test_get_all_pages_server_error_raises() -> None:
     assert exc_info.value.status_code == 500
 
 
+@respx.mock
+def test_get_all_pages_rejects_cross_origin_next_url() -> None:
+    """get_all_pages raises PIWebAPIError if Links.Next points to a different origin."""
+    ssrf_page = {
+        "Items": [{"WebId": "A", "Name": "tag1"}],
+        "Links": {"Next": "http://169.254.169.254/latest/meta-data/"},
+    }
+    respx.get(f"{BASE}/points/search").mock(
+        return_value=httpx.Response(200, json=ssrf_page)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        pager = _SyncPaginator(client)
+        with pytest.raises(PIWebAPIError, match="origin mismatch"):
+            pager.get_all_pages("/points/search")
+
+
+@respx.mock
+def test_get_all_pages_allows_same_origin_next_url() -> None:
+    """get_all_pages follows Links.Next when it matches the base URL origin."""
+    respx.get(f"{BASE}/points/search").mock(
+        side_effect=[
+            httpx.Response(200, json=PAGE1),
+            httpx.Response(200, json=PAGE2),
+        ]
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        pager = _SyncPaginator(client)
+        items = pager.get_all_pages("/points/search")
+
+    # PAGE1.Links.Next is same origin as BASE — should succeed
+    assert len(items) == 3
+
+
 # ===========================================================================
 # Async
 # ===========================================================================
@@ -166,3 +201,20 @@ async def test_async_get_all_pages_server_error_raises() -> None:
             await pager.get_all_pages("/points/search")
 
     assert exc_info.value.status_code == 503
+
+
+@respx.mock
+async def test_async_get_all_pages_rejects_cross_origin_next_url() -> None:
+    """Async get_all_pages raises PIWebAPIError if Links.Next is cross-origin."""
+    ssrf_page = {
+        "Items": [{"WebId": "A"}],
+        "Links": {"Next": "http://evil.example.com/steal-creds"},
+    }
+    respx.get(f"{BASE}/points/search").mock(
+        return_value=httpx.Response(200, json=ssrf_page)
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        pager = _AsyncPaginator(client)
+        with pytest.raises(PIWebAPIError, match="origin mismatch"):
+            await pager.get_all_pages("/points/search")
