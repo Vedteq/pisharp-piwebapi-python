@@ -526,6 +526,26 @@ def test_create_point_with_extra_fields() -> None:
 
 
 @respx.mock
+def test_create_point_extra_fields_cannot_override_standard() -> None:
+    """Standard parameters take precedence over extra_fields."""
+    route = respx.post(f"{BASE}/dataservers/{DS_WEB_ID}/points").mock(
+        return_value=httpx.Response(201)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        pts = _SyncPoints(client)
+        pts.create_point(
+            DS_WEB_ID,
+            "RealName",
+            extra_fields={"Name": "SpoofedName", "Span": 100},
+        )
+
+    body = json.loads(route.calls.last.request.content)
+    assert body["Name"] == "RealName", "standard param must win over extra_fields"
+    assert body["Span"] == 100, "extra field still present"
+
+
+@respx.mock
 def test_create_point_auth_error_raises() -> None:
     """create_point raises AuthenticationError on 401."""
     respx.post(f"{BASE}/dataservers/{DS_WEB_ID}/points").mock(

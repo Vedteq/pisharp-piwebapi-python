@@ -162,16 +162,15 @@ class PointsMixin:
             PIWebAPIError: If the server returns any other non-2xx status
                 (e.g. 409 if a point with that name already exists).
         """
-        body: dict[str, Any] = {
+        body: dict[str, Any] = dict(extra_fields) if extra_fields else {}
+        body.update({
             "Name": name,
             "PointType": point_type,
             "PointClass": point_class,
             "Descriptor": descriptor,
             "EngineeringUnits": engineering_units,
             "Future": future,
-        }
-        if extra_fields:
-            body.update(extra_fields)
+        })
 
         resp = self._client.post(
             f"/dataservers/{quote(data_server_web_id, safe='')}/points",
@@ -344,16 +343,15 @@ class AsyncPointsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: If the server returns any other non-2xx status.
         """
-        body: dict[str, Any] = {
+        body: dict[str, Any] = dict(extra_fields) if extra_fields else {}
+        body.update({
             "Name": name,
             "PointType": point_type,
             "PointClass": point_class,
             "Descriptor": descriptor,
             "EngineeringUnits": engineering_units,
             "Future": future,
-        }
-        if extra_fields:
-            body.update(extra_fields)
+        })
 
         resp = await self._client.post(
             f"/dataservers/{quote(data_server_web_id, safe='')}/points",
