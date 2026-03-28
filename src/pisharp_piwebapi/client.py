@@ -10,6 +10,7 @@ import httpx
 
 from pisharp_piwebapi.auth import basic_auth, kerberos_auth, ntlm_auth
 from pisharp_piwebapi.batch import AsyncBatchMixin, BatchMixin
+from pisharp_piwebapi.calculation import AsyncCalculationMixin, CalculationMixin
 from pisharp_piwebapi.elements import AsyncElementsMixin, ElementsMixin
 from pisharp_piwebapi.elementtemplates import (
     AsyncElementTemplatesMixin,
@@ -73,6 +74,13 @@ class _StreamSetsAccessor(StreamSetsMixin):
         self._client = client
 
 
+class _CalculationAccessor(CalculationMixin):
+    """Namespace for calculation operations on the sync client."""
+
+    def __init__(self, client: httpx.Client) -> None:
+        self._client = client
+
+
 class _ElementsAccessor(ElementsMixin):
     """Namespace for AF element operations on the sync client."""
 
@@ -131,6 +139,13 @@ class _AsyncStreamsAccessor(AsyncStreamsMixin):
 
 class _AsyncStreamSetsAccessor(AsyncStreamSetsMixin):
     """Namespace for streamset (multi-stream) operations on the async client."""
+
+    def __init__(self, client: httpx.AsyncClient) -> None:
+        self._client = client
+
+
+class _AsyncCalculationAccessor(AsyncCalculationMixin):
+    """Namespace for calculation operations on the async client."""
 
     def __init__(self, client: httpx.AsyncClient) -> None:
         self._client = client
@@ -263,6 +278,7 @@ class PIWebAPIClient(BatchMixin, PaginationMixin):
         self.points = _PointsAccessor(self._client)
         self.streams = _StreamsAccessor(self._client)
         self.streamsets = _StreamSetsAccessor(self._client)
+        self.calculation = _CalculationAccessor(self._client)
         self.elements = _ElementsAccessor(self._client)
         self.eventframes = _EventFramesAccessor(self._client)
         self.elementtemplates = _ElementTemplatesAccessor(self._client)
@@ -365,6 +381,7 @@ class AsyncPIWebAPIClient(AsyncBatchMixin, AsyncPaginationMixin):
         self.points = _AsyncPointsAccessor(self._client)
         self.streams = _AsyncStreamsAccessor(self._client)
         self.streamsets = _AsyncStreamSetsAccessor(self._client)
+        self.calculation = _AsyncCalculationAccessor(self._client)
         self.elements = _AsyncElementsAccessor(self._client)
         self.eventframes = _AsyncEventFramesAccessor(self._client)
         self.elementtemplates = _AsyncElementTemplatesAccessor(self._client)
