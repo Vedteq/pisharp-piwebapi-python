@@ -6,7 +6,13 @@ from typing import TYPE_CHECKING, Any
 from urllib.parse import quote
 
 from pisharp_piwebapi.exceptions import raise_for_response, raise_for_response_async
-from pisharp_piwebapi.models import PIAssetServer, PIAttribute, PIDatabase, PIElement
+from pisharp_piwebapi.models import (
+    PIAssetServer,
+    PIAttribute,
+    PIDatabase,
+    PIElement,
+    StreamValue,
+)
 
 if TYPE_CHECKING:
     import httpx
@@ -404,6 +410,83 @@ class ElementsMixin:
         )
         raise_for_response(resp)
 
+    def get_attribute_value(self, web_id: str) -> StreamValue:
+        """Return the current value of an AF attribute.
+
+        Calls ``GET /attributes/{webId}/value``.
+
+        Args:
+            web_id: WebID of the AF attribute.
+
+        Returns:
+            A :class:`StreamValue` with the current timestamped value.
+
+        Raises:
+            NotFoundError: If the attribute WebID is not found.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = self._client.get(
+            f"/attributes/{quote(web_id, safe='')}/value"
+        )
+        raise_for_response(resp)
+        return StreamValue.model_validate(resp.json())
+
+    def set_attribute_value(
+        self,
+        web_id: str,
+        value: Any,
+    ) -> None:
+        """Set the value of an AF attribute.
+
+        Calls ``PUT /attributes/{webId}/value``.
+
+        Args:
+            web_id: WebID of the AF attribute.
+            value: The value to write.  For simple attributes pass a scalar
+                (``42``, ``"hello"``).  For timestamped writes pass a dict
+                matching the PI Web API ``TimedValue`` schema, e.g.
+                ``{"Value": 42, "Timestamp": "2024-01-01T00:00:00Z"}``.
+
+        Raises:
+            NotFoundError: If the attribute WebID is not found.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        body = value if isinstance(value, dict) else {"Value": value}
+        resp = self._client.put(
+            f"/attributes/{quote(web_id, safe='')}/value",
+            json=body,
+        )
+        raise_for_response(resp)
+
+    def update_element(
+        self,
+        web_id: str,
+        body: dict[str, Any],
+    ) -> None:
+        """Update an existing AF element.
+
+        Sends a ``PATCH /elements/{webId}`` request with the given body.
+        Only include the fields you want to change.
+
+        Args:
+            web_id: WebID of the AF element to update.
+            body: Dictionary of element properties to update.  Keys use
+                PI Web API PascalCase names (e.g. ``"Name"``,
+                ``"Description"``, ``"TemplateName"``).
+
+        Raises:
+            NotFoundError: If the element WebID is not found.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = self._client.patch(
+            f"/elements/{quote(web_id, safe='')}",
+            json=body,
+        )
+        raise_for_response(resp)
+
     def delete_attribute(self, web_id: str) -> None:
         """Delete an AF attribute.
 
@@ -780,6 +863,82 @@ class AsyncElementsMixin:
         """
         resp = await self._client.patch(
             f"/attributes/{quote(web_id, safe='')}",
+            json=body,
+        )
+        await raise_for_response_async(resp)
+
+    async def get_attribute_value(self, web_id: str) -> StreamValue:
+        """Return the current value of an AF attribute.
+
+        Calls ``GET /attributes/{webId}/value``.
+
+        Args:
+            web_id: WebID of the AF attribute.
+
+        Returns:
+            A :class:`StreamValue` with the current timestamped value.
+
+        Raises:
+            NotFoundError: If the attribute WebID is not found.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = await self._client.get(
+            f"/attributes/{quote(web_id, safe='')}/value"
+        )
+        await raise_for_response_async(resp)
+        return StreamValue.model_validate(resp.json())
+
+    async def set_attribute_value(
+        self,
+        web_id: str,
+        value: Any,
+    ) -> None:
+        """Set the value of an AF attribute.
+
+        Calls ``PUT /attributes/{webId}/value``.
+
+        Args:
+            web_id: WebID of the AF attribute.
+            value: The value to write.  For simple attributes pass a scalar
+                (``42``, ``"hello"``).  For timestamped writes pass a dict
+                matching the PI Web API ``TimedValue`` schema, e.g.
+                ``{"Value": 42, "Timestamp": "2024-01-01T00:00:00Z"}``.
+
+        Raises:
+            NotFoundError: If the attribute WebID is not found.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        body = value if isinstance(value, dict) else {"Value": value}
+        resp = await self._client.put(
+            f"/attributes/{quote(web_id, safe='')}/value",
+            json=body,
+        )
+        await raise_for_response_async(resp)
+
+    async def update_element(
+        self,
+        web_id: str,
+        body: dict[str, Any],
+    ) -> None:
+        """Update an existing AF element.
+
+        Sends a ``PATCH /elements/{webId}`` request with the given body.
+
+        Args:
+            web_id: WebID of the AF element to update.
+            body: Dictionary of element properties to update.  Keys use
+                PI Web API PascalCase names (e.g. ``"Name"``,
+                ``"Description"``, ``"TemplateName"``).
+
+        Raises:
+            NotFoundError: If the element WebID is not found.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = await self._client.patch(
+            f"/elements/{quote(web_id, safe='')}",
             json=body,
         )
         await raise_for_response_async(resp)

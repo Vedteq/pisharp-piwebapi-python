@@ -15,7 +15,7 @@ from conftest import (
 )
 
 from pisharp_piwebapi.exceptions import NotFoundError
-from pisharp_piwebapi.models import PIAttribute, PIElement
+from pisharp_piwebapi.models import PIAttribute, PIElement, StreamValue
 
 ELEM_WEB_ID = ELEMENT_PUMP["WebId"]
 DB_WEB_ID = AF_DATABASE["WebId"]
@@ -174,3 +174,76 @@ class TestElementsAsync:
         )
         with pytest.raises(NotFoundError):
             await client.elements.delete_attribute("BOGUS")
+
+    async def test_get_attribute_value(self, async_client):
+        client, mock = async_client
+        attr_wid = ATTRIBUTE_TEMP["WebId"]
+        value_response = {
+            "Timestamp": "2024-06-15T12:00:00Z",
+            "Value": 72.5,
+            "UnitsAbbreviation": "degC",
+            "Good": True,
+            "Questionable": False,
+            "Substituted": False,
+            "Annotated": False,
+        }
+        mock.get(f"/attributes/{attr_wid}/value").mock(
+            return_value=httpx.Response(200, json=value_response)
+        )
+        val = await client.elements.get_attribute_value(attr_wid)
+        assert isinstance(val, StreamValue)
+        assert val.value == 72.5
+        assert val.good is True
+
+    async def test_get_attribute_value_not_found(self, async_client):
+        client, mock = async_client
+        mock.get("/attributes/BOGUS/value").mock(
+            return_value=httpx.Response(
+                404, json={"Message": "Attribute not found."}
+            )
+        )
+        with pytest.raises(NotFoundError):
+            await client.elements.get_attribute_value("BOGUS")
+
+    async def test_set_attribute_value_scalar(self, async_client):
+        client, mock = async_client
+        attr_wid = ATTRIBUTE_TEMP["WebId"]
+        route = mock.put(f"/attributes/{attr_wid}/value").mock(
+            return_value=httpx.Response(204)
+        )
+        await client.elements.set_attribute_value(attr_wid, 99.9)
+        assert route.called
+        payload = json.loads(route.calls.last.request.read())
+        assert payload == {"Value": 99.9}
+
+    async def test_set_attribute_value_dict(self, async_client):
+        client, mock = async_client
+        attr_wid = ATTRIBUTE_TEMP["WebId"]
+        route = mock.put(f"/attributes/{attr_wid}/value").mock(
+            return_value=httpx.Response(204)
+        )
+        body = {"Value": 42, "Timestamp": "2024-01-01T00:00:00Z"}
+        await client.elements.set_attribute_value(attr_wid, body)
+        assert route.called
+        payload = json.loads(route.calls.last.request.read())
+        assert payload == body
+
+    async def test_update_element(self, async_client):
+        client, mock = async_client
+        route = mock.patch(f"/elements/{ELEM_WEB_ID}").mock(
+            return_value=httpx.Response(204)
+        )
+        await client.elements.update_element(
+            ELEM_WEB_ID, {"Description": "Updated pump"}
+        )
+        assert route.called
+
+    async def test_update_element_not_found(self, async_client):
+        client, mock = async_client
+        mock.patch("/elements/BOGUS").mock(
+            return_value=httpx.Response(
+                404, json={"Message": "Element not found."}
+            )
+        )
+        with pytest.raises(NotFoundError):
+            await client.elements.update_element("BOGUS", {"Name": "nope"})
