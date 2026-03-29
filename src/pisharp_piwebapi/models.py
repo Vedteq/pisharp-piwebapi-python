@@ -14,6 +14,16 @@ if TYPE_CHECKING:
     import pandas as pd
 
 
+class PISystemInfo(BaseModel):
+    """System information from the PI Web API landing page (``GET /``)."""
+
+    product_title: str = Field(alias="ProductTitle", default="")
+    product_version: str = Field(alias="ProductVersion", default="")
+    links: dict[str, str] = Field(alias="Links", default_factory=dict)
+
+    model_config = {"populate_by_name": True}
+
+
 class PIPoint(BaseModel):
     """Represents a PI Point (tag)."""
 

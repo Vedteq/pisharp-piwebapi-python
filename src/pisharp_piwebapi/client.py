@@ -18,6 +18,7 @@ from pisharp_piwebapi.elementtemplates import (
 )
 from pisharp_piwebapi.eventframes import AsyncEventFramesMixin, EventFramesMixin
 from pisharp_piwebapi.exceptions import raise_for_response, raise_for_response_async
+from pisharp_piwebapi.models import PISystemInfo
 from pisharp_piwebapi.pagination import AsyncPaginationMixin, PaginationMixin
 from pisharp_piwebapi.points import AsyncPointsMixin, PointsMixin
 from pisharp_piwebapi.search import AsyncSearchMixin, SearchMixin
@@ -302,6 +303,23 @@ class PIWebAPIClient(BatchMixin, PaginationMixin):
         self.dataservers = _DataServersAccessor(self._client)
         self.databases = _DatabasesAccessor(self._client)
 
+    def home(self) -> PISystemInfo:
+        """Return system information from the PI Web API landing page.
+
+        Calls ``GET /`` and returns product title, version, and links to
+        all available controllers.  Useful as a connectivity check.
+
+        Returns:
+            A :class:`PISystemInfo` with product version and controller links.
+
+        Raises:
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = self._client.get("/")
+        raise_for_response(resp)
+        return PISystemInfo.model_validate(resp.json())
+
     def close(self) -> None:
         """Close the underlying HTTP connection."""
         self._client.close()
@@ -405,6 +423,23 @@ class AsyncPIWebAPIClient(AsyncBatchMixin, AsyncPaginationMixin):
         self.assetservers = _AsyncAssetServersAccessor(self._client)
         self.dataservers = _AsyncDataServersAccessor(self._client)
         self.databases = _AsyncDatabasesAccessor(self._client)
+
+    async def home(self) -> PISystemInfo:
+        """Return system information from the PI Web API landing page.
+
+        Calls ``GET /`` and returns product title, version, and links to
+        all available controllers.  Useful as a connectivity check.
+
+        Returns:
+            A :class:`PISystemInfo` with product version and controller links.
+
+        Raises:
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = await self._client.get("/")
+        await raise_for_response_async(resp)
+        return PISystemInfo.model_validate(resp.json())
 
     async def aclose(self) -> None:
         """Close the underlying HTTP connection."""

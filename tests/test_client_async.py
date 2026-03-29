@@ -14,7 +14,8 @@ from conftest import (
     SINUSOID_POINT,
 )
 
-from pisharp_piwebapi.models import PIPoint, StreamValue, StreamValues
+from pisharp_piwebapi.exceptions import AuthenticationError
+from pisharp_piwebapi.models import PIPoint, PISystemInfo, StreamValue, StreamValues
 
 WEB_ID = SINUSOID_POINT["WebId"]
 
@@ -178,3 +179,36 @@ class TestContextManagerAsync:
                 verify_ssl=False,
             ) as client:
                 assert client is not None
+
+
+# ── Home / System Info ───────────────────────────────────────────────
+
+
+class TestHomeAsync:
+    async def test_home(self, async_client):
+        client, mock = async_client
+        home_response = {
+            "ProductTitle": "PI Web API",
+            "ProductVersion": "2024 SP1",
+            "Links": {
+                "Self": f"{BASE_URL}/",
+                "AssetServers": f"{BASE_URL}/assetservers",
+                "DataServers": f"{BASE_URL}/dataservers",
+            },
+        }
+        mock.get("/").mock(return_value=httpx.Response(200, json=home_response))
+        info = await client.home()
+        assert isinstance(info, PISystemInfo)
+        assert info.product_title == "PI Web API"
+        assert info.product_version == "2024 SP1"
+        assert "AssetServers" in info.links
+
+    async def test_home_auth_failure(self, async_client):
+        client, mock = async_client
+        mock.get("/").mock(
+            return_value=httpx.Response(401, json={"Message": "Unauthorized"})
+        )
+        import pytest
+
+        with pytest.raises(AuthenticationError):
+            await client.home()

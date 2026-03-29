@@ -22,7 +22,7 @@ from pisharp_piwebapi.exceptions import (
     RateLimitError,
     ServerError,
 )
-from pisharp_piwebapi.models import PIPoint, StreamValue, StreamValues
+from pisharp_piwebapi.models import PIPoint, PISystemInfo, StreamValue, StreamValues
 
 WEB_ID = SINUSOID_POINT["WebId"]
 
@@ -260,3 +260,34 @@ class TestContextManagerSync:
                 verify_ssl=False,
             ) as client:
                 assert client is not None
+
+
+# ── Home / System Info ───────────────────────────────────────────────
+
+
+class TestHomeSync:
+    def test_home(self, sync_client):
+        client, mock = sync_client
+        home_response = {
+            "ProductTitle": "PI Web API",
+            "ProductVersion": "2024 SP1",
+            "Links": {
+                "Self": f"{BASE_URL}/",
+                "AssetServers": f"{BASE_URL}/assetservers",
+                "DataServers": f"{BASE_URL}/dataservers",
+            },
+        }
+        mock.get("/").mock(return_value=httpx.Response(200, json=home_response))
+        info = client.home()
+        assert isinstance(info, PISystemInfo)
+        assert info.product_title == "PI Web API"
+        assert info.product_version == "2024 SP1"
+        assert "AssetServers" in info.links
+
+    def test_home_auth_failure(self, sync_client):
+        client, mock = sync_client
+        mock.get("/").mock(
+            return_value=httpx.Response(401, json={"Message": "Unauthorized"})
+        )
+        with pytest.raises(AuthenticationError):
+            client.home()
