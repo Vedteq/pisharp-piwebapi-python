@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import warnings
+
 import httpx
 import pytest
 import respx
@@ -22,6 +24,7 @@ from pisharp_piwebapi.exceptions import (
     RateLimitError,
     ServerError,
 )
+from pisharp_piwebapi.client import PIWebAPIClient
 from pisharp_piwebapi.models import PIPoint, PISystemInfo, StreamValue, StreamValues
 
 WEB_ID = SINUSOID_POINT["WebId"]
@@ -291,3 +294,27 @@ class TestHomeSync:
         )
         with pytest.raises(AuthenticationError):
             client.home()
+
+
+# ── Security: HTTP scheme warning ────────────────────────────────────
+
+
+class TestHttpSchemeWarningSync:
+    def test_http_base_url_warns(self):
+        with pytest.warns(UserWarning, match="http://.*cleartext"):
+            with respx.mock(base_url="http://insecure.example.com/piwebapi"):
+                PIWebAPIClient(
+                    base_url="http://insecure.example.com/piwebapi",
+                    username="admin",
+                    password="secret",
+                )
+
+    def test_https_base_url_no_cleartext_warning(self):
+        with respx.mock(base_url=BASE_URL):
+            with warnings.catch_warnings():
+                warnings.filterwarnings("error", message=".*cleartext.*")
+                PIWebAPIClient(
+                    base_url=BASE_URL,
+                    username="admin",
+                    password="secret",
+                )

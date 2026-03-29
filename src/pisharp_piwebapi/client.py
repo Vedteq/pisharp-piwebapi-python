@@ -5,6 +5,7 @@ from __future__ import annotations
 import ssl
 import warnings
 from typing import Any
+from urllib.parse import urlparse
 
 import httpx
 
@@ -257,6 +258,15 @@ class PIWebAPIClient(BatchMixin, PaginationMixin):
                 "username and password."
             )
 
+        parsed_url = urlparse(base_url)
+        if parsed_url.scheme == "http":
+            warnings.warn(
+                "base_url uses http:// — credentials will be sent in "
+                "cleartext. Use https:// for production.",
+                UserWarning,
+                stacklevel=2,
+            )
+
         auth: httpx.Auth | None = None
         if auth_method == "kerberos":
             auth = kerberos_auth()
@@ -377,6 +387,15 @@ class AsyncPIWebAPIClient(AsyncBatchMixin, AsyncPaginationMixin):
             raise ValueError(
                 f"auth_method={auth_method!r} requires both "
                 "username and password."
+            )
+
+        parsed_url = urlparse(base_url)
+        if parsed_url.scheme == "http":
+            warnings.warn(
+                "base_url uses http:// — credentials will be sent in "
+                "cleartext. Use https:// for production.",
+                UserWarning,
+                stacklevel=2,
             )
 
         auth: httpx.Auth | None = None
