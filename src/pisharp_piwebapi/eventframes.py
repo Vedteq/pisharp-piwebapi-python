@@ -37,38 +37,43 @@ class EventFramesMixin:
 
     def search(
         self,
-        query: str,
+        database_web_id: str,
         *,
-        database_web_id: str | None = None,
+        name_filter: str = "*",
         start_time: str = "*-1d",
         end_time: str = "*",
         max_count: int = 100,
     ) -> list[EventFrame]:
-        """Search for Event Frames.
+        """Search for Event Frames within an AF database.
+
+        Calls ``GET /assetdatabases/{webId}/eventframes``.
 
         Args:
-            query: Search query string.
-            database_web_id: Limit search to a specific AF database.
-            start_time: Start of the time range.
-            end_time: End of the time range.
-            max_count: Maximum results to return.
+            database_web_id: WebID of the AF database to search.
+            name_filter: Name pattern supporting wildcards (e.g.
+                ``"Alarm*"``). Defaults to ``"*"`` (all event frames).
+            start_time: Start of the time range. Defaults to ``"*-1d"``.
+            end_time: End of the time range. Defaults to ``"*"``.
+            max_count: Maximum results to return. Defaults to ``100``.
 
         Returns:
             List of :class:`EventFrame` objects matching the search criteria.
 
         Raises:
+            NotFoundError: If the database WebID is not found.
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
         params: dict[str, Any] = {
-            "q": query,
+            "nameFilter": name_filter,
             "startTime": start_time,
             "endTime": end_time,
             "maxCount": max_count,
         }
-        if database_web_id:
-            params["databaseWebId"] = database_web_id
-        resp = self._client.get("/eventframes/search", params=params)
+        resp = self._client.get(
+            f"/assetdatabases/{quote(database_web_id, safe='')}/eventframes",
+            params=params,
+        )
         raise_for_response(resp)
         data = resp.json()
         items = data.get("Items", []) if isinstance(data, dict) else data
@@ -212,38 +217,43 @@ class AsyncEventFramesMixin:
 
     async def search(
         self,
-        query: str,
+        database_web_id: str,
         *,
-        database_web_id: str | None = None,
+        name_filter: str = "*",
         start_time: str = "*-1d",
         end_time: str = "*",
         max_count: int = 100,
     ) -> list[EventFrame]:
-        """Search for Event Frames.
+        """Search for Event Frames within an AF database.
+
+        Calls ``GET /assetdatabases/{webId}/eventframes``.
 
         Args:
-            query: Search query string.
-            database_web_id: Limit search to a specific AF database.
-            start_time: Start of the time range.
-            end_time: End of the time range.
-            max_count: Maximum results to return.
+            database_web_id: WebID of the AF database to search.
+            name_filter: Name pattern supporting wildcards (e.g.
+                ``"Alarm*"``). Defaults to ``"*"`` (all event frames).
+            start_time: Start of the time range. Defaults to ``"*-1d"``.
+            end_time: End of the time range. Defaults to ``"*"``.
+            max_count: Maximum results to return. Defaults to ``100``.
 
         Returns:
             List of :class:`EventFrame` objects matching the search criteria.
 
         Raises:
+            NotFoundError: If the database WebID is not found.
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
         params: dict[str, Any] = {
-            "q": query,
+            "nameFilter": name_filter,
             "startTime": start_time,
             "endTime": end_time,
             "maxCount": max_count,
         }
-        if database_web_id:
-            params["databaseWebId"] = database_web_id
-        resp = await self._client.get("/eventframes/search", params=params)
+        resp = await self._client.get(
+            f"/assetdatabases/{quote(database_web_id, safe='')}/eventframes",
+            params=params,
+        )
         await raise_for_response_async(resp)
         data = resp.json()
         items = data.get("Items", []) if isinstance(data, dict) else data

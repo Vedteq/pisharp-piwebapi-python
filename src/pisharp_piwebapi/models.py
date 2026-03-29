@@ -49,7 +49,12 @@ class PIAttribute(BaseModel):
     path: str = Field(alias="Path", default="")
     description: str = Field(alias="Description", default="")
     type: str = Field(alias="Type", default="")
+    type_qualifier: str = Field(alias="TypeQualifier", default="")
     value: Any = Field(alias="Value", default=None)
+    config_string: str = Field(alias="ConfigString", default="")
+    data_reference_plugin: str = Field(alias="DataReferencePlugIn", default="")
+    has_children: bool = Field(alias="HasChildren", default=False)
+    is_configuration_item: bool = Field(alias="IsConfigurationItem", default=False)
     links: dict[str, str] = Field(alias="Links", default_factory=dict)
 
     model_config = {"populate_by_name": True}
