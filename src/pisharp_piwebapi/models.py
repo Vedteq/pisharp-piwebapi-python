@@ -66,6 +66,10 @@ class StreamValue(BaseModel):
     The ``timestamp`` field is optional because PI Web API returns
     ``null`` for certain summary types (e.g. ``Count``,
     ``PercentGood``, ``Total``) where a timestamp is not meaningful.
+
+    The ``action`` field is populated only in stream update responses
+    (``"Add"``, ``"Edit"``, ``"Delete"``); it is empty for normal
+    stream reads.
     """
 
     timestamp: datetime | None = Field(alias="Timestamp", default=None)
@@ -75,6 +79,7 @@ class StreamValue(BaseModel):
     questionable: bool = Field(alias="Questionable", default=False)
     substituted: bool = Field(alias="Substituted", default=False)
     annotated: bool = Field(alias="Annotated", default=False)
+    action: str = Field(alias="Action", default="")
     web_id: str = Field(alias="WebId", default="")
     name: str = Field(alias="Name", default="")
     path: str = Field(alias="Path", default="")

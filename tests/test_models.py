@@ -125,6 +125,30 @@ def test_stream_set_item_errors_field():
     assert len(item.items) == 0
 
 
+def test_stream_value_action_field():
+    """StreamValue captures Action field from stream update events."""
+    data = {
+        "Action": "Edit",
+        "Timestamp": "2024-06-01T12:00:00Z",
+        "Value": 99.9,
+        "Good": True,
+    }
+    value = StreamValue.model_validate(data)
+    assert value.action == "Edit"
+    assert value.value == 99.9
+
+
+def test_stream_value_action_defaults_empty():
+    """StreamValue.action defaults to empty for normal stream reads."""
+    data = {
+        "Timestamp": "2024-06-01T12:00:00Z",
+        "Value": 1.0,
+        "Good": True,
+    }
+    value = StreamValue.model_validate(data)
+    assert value.action == ""
+
+
 def test_stream_set_item_no_errors_by_default():
     """StreamSetItem.errors defaults to empty list."""
     data = {

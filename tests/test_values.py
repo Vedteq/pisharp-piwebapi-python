@@ -1127,9 +1127,10 @@ STREAM_UPDATE_PAYLOAD = {
     "SourceName": "sinusoid",
     "SourcePath": "\\\\SERVER\\sinusoid",
     "LatestMarker": MARKER,
-    "Status": "HasData",
+    "Status": "HasChanges",
     "Events": [
         {
+            "Action": "Add",
             "Timestamp": "2024-06-01T12:00:00Z",
             "Value": 3.14,
             "Good": True,
@@ -1171,9 +1172,10 @@ def test_register_stream_update_happy_path() -> None:
 
     assert isinstance(update, StreamUpdate)
     assert update.latest_marker == MARKER
-    assert update.status == "HasData"
+    assert update.status == "HasChanges"
     assert len(update.events) == 1
     assert update.events[0].value == pytest.approx(3.14)
+    assert update.events[0].action == "Add"
 
 
 @respx.mock
