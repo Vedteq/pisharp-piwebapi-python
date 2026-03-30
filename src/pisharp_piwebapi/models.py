@@ -389,6 +389,26 @@ class StreamSetItem(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+class StreamUpdate(BaseModel):
+    """Response from a stream update registration or retrieval.
+
+    Contains events received since the last marker, plus a new marker
+    for subsequent retrieval.  Returned by
+    ``POST /streams/{webId}/updates`` (register) and
+    ``GET /streams/updates/{marker}`` (retrieve).
+    """
+
+    source: str = Field(alias="Source", default="")
+    source_name: str = Field(alias="SourceName", default="")
+    source_path: str = Field(alias="SourcePath", default="")
+    latest_marker: str = Field(alias="LatestMarker", default="")
+    status: str = Field(alias="Status", default="")
+    events: list[StreamValue] = Field(alias="Events", default_factory=list)
+    exception: Any = Field(alias="Exception", default=None)
+
+    model_config = {"populate_by_name": True}
+
+
 class BatchResponseItem(BaseModel):
     """A single response within a PI Web API batch result."""
 

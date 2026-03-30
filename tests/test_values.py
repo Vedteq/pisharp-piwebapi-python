@@ -10,7 +10,7 @@ import pytest
 import respx
 
 from pisharp_piwebapi.exceptions import AuthenticationError, NotFoundError, ServerError
-from pisharp_piwebapi.models import StreamValue, StreamValues
+from pisharp_piwebapi.models import StreamUpdate, StreamValue, StreamValues
 from pisharp_piwebapi.values import AsyncStreamsMixin, StreamsMixin
 
 BASE = "https://piserver/piwebapi"
@@ -1114,3 +1114,192 @@ async def test_async_get_interpolated_at_times_404_raises() -> None:
         streams = _AsyncStreams(client)
         with pytest.raises(NotFoundError):
             await streams.get_interpolated_at_times(WEB_ID, times=["*"])
+
+
+# ===========================================================================
+# Shared Stream Update payloads
+# ===========================================================================
+
+MARKER = "VXBkYXRlTWFya2VyMTIz"
+
+STREAM_UPDATE_PAYLOAD = {
+    "Source": WEB_ID,
+    "SourceName": "sinusoid",
+    "SourcePath": "\\\\SERVER\\sinusoid",
+    "LatestMarker": MARKER,
+    "Status": "HasData",
+    "Events": [
+        {
+            "Timestamp": "2024-06-01T12:00:00Z",
+            "Value": 3.14,
+            "Good": True,
+            "Questionable": False,
+            "Substituted": False,
+            "Annotated": False,
+            "UnitsAbbreviation": "",
+        },
+    ],
+    "Exception": None,
+}
+
+STREAM_UPDATE_EMPTY_PAYLOAD = {
+    "Source": WEB_ID,
+    "SourceName": "sinusoid",
+    "SourcePath": "",
+    "LatestMarker": "bmV3TWFya2Vy",
+    "Status": "NoData",
+    "Events": [],
+    "Exception": None,
+}
+
+
+# ===========================================================================
+# Sync — register_stream_update
+# ===========================================================================
+
+
+@respx.mock
+def test_register_stream_update_happy_path() -> None:
+    """register_stream_update returns a StreamUpdate with marker."""
+    respx.post(f"{BASE}/streams/{WEB_ID}/updates").mock(
+        return_value=httpx.Response(200, json=STREAM_UPDATE_PAYLOAD)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        streams = _SyncStreams(client)
+        update = streams.register_stream_update(WEB_ID)
+
+    assert isinstance(update, StreamUpdate)
+    assert update.latest_marker == MARKER
+    assert update.status == "HasData"
+    assert len(update.events) == 1
+    assert update.events[0].value == pytest.approx(3.14)
+
+
+@respx.mock
+def test_register_stream_update_404_raises() -> None:
+    """register_stream_update raises NotFoundError on 404."""
+    respx.post(f"{BASE}/streams/{WEB_ID}/updates").mock(
+        return_value=httpx.Response(404, json={"Message": "Not found"})
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        streams = _SyncStreams(client)
+        with pytest.raises(NotFoundError):
+            streams.register_stream_update(WEB_ID)
+
+
+# ===========================================================================
+# Sync — retrieve_stream_update
+# ===========================================================================
+
+
+@respx.mock
+def test_retrieve_stream_update_happy_path() -> None:
+    """retrieve_stream_update returns new events and updated marker."""
+    respx.get(f"{BASE}/streams/updates/{MARKER}").mock(
+        return_value=httpx.Response(200, json=STREAM_UPDATE_PAYLOAD)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        streams = _SyncStreams(client)
+        update = streams.retrieve_stream_update(MARKER)
+
+    assert isinstance(update, StreamUpdate)
+    assert update.latest_marker == MARKER
+    assert len(update.events) == 1
+
+
+@respx.mock
+def test_retrieve_stream_update_no_data() -> None:
+    """retrieve_stream_update handles empty events (NoData status)."""
+    respx.get(f"{BASE}/streams/updates/{MARKER}").mock(
+        return_value=httpx.Response(200, json=STREAM_UPDATE_EMPTY_PAYLOAD)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        streams = _SyncStreams(client)
+        update = streams.retrieve_stream_update(MARKER)
+
+    assert update.status == "NoData"
+    assert len(update.events) == 0
+    assert update.latest_marker == "bmV3TWFya2Vy"
+
+
+@respx.mock
+def test_retrieve_stream_update_server_error_raises() -> None:
+    """retrieve_stream_update raises ServerError on 500."""
+    respx.get(f"{BASE}/streams/updates/{MARKER}").mock(
+        return_value=httpx.Response(500, json={"Message": "Server error"})
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        streams = _SyncStreams(client)
+        with pytest.raises(ServerError):
+            streams.retrieve_stream_update(MARKER)
+
+
+# ===========================================================================
+# Async — register_stream_update
+# ===========================================================================
+
+
+@respx.mock
+async def test_async_register_stream_update_happy_path() -> None:
+    """Async register_stream_update returns a StreamUpdate."""
+    respx.post(f"{BASE}/streams/{WEB_ID}/updates").mock(
+        return_value=httpx.Response(200, json=STREAM_UPDATE_PAYLOAD)
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        streams = _AsyncStreams(client)
+        update = await streams.register_stream_update(WEB_ID)
+
+    assert isinstance(update, StreamUpdate)
+    assert update.latest_marker == MARKER
+
+
+@respx.mock
+async def test_async_register_stream_update_404_raises() -> None:
+    """Async register_stream_update raises NotFoundError on 404."""
+    respx.post(f"{BASE}/streams/{WEB_ID}/updates").mock(
+        return_value=httpx.Response(404, json={"Message": "Not found"})
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        streams = _AsyncStreams(client)
+        with pytest.raises(NotFoundError):
+            await streams.register_stream_update(WEB_ID)
+
+
+# ===========================================================================
+# Async — retrieve_stream_update
+# ===========================================================================
+
+
+@respx.mock
+async def test_async_retrieve_stream_update_happy_path() -> None:
+    """Async retrieve_stream_update returns new events."""
+    respx.get(f"{BASE}/streams/updates/{MARKER}").mock(
+        return_value=httpx.Response(200, json=STREAM_UPDATE_PAYLOAD)
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        streams = _AsyncStreams(client)
+        update = await streams.retrieve_stream_update(MARKER)
+
+    assert isinstance(update, StreamUpdate)
+    assert len(update.events) == 1
+
+
+@respx.mock
+async def test_async_retrieve_stream_update_server_error() -> None:
+    """Async retrieve_stream_update raises ServerError on 500."""
+    respx.get(f"{BASE}/streams/updates/{MARKER}").mock(
+        return_value=httpx.Response(500, json={"Message": "Server error"})
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        streams = _AsyncStreams(client)
+        with pytest.raises(ServerError):
+            await streams.retrieve_stream_update(MARKER)

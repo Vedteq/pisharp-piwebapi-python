@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 from urllib.parse import quote
 
 from pisharp_piwebapi.exceptions import raise_for_response, raise_for_response_async
-from pisharp_piwebapi.models import StreamSummary, StreamValue, StreamValues
+from pisharp_piwebapi.models import StreamSummary, StreamUpdate, StreamValue, StreamValues
 
 if TYPE_CHECKING:
     import httpx
@@ -407,6 +407,77 @@ class StreamsMixin:
         )
         raise_for_response(resp)
 
+    def register_stream_update(
+        self,
+        web_id: str,
+    ) -> StreamUpdate:
+        """Register for incremental stream updates (marker-based).
+
+        Calls ``POST /streams/{webId}/updates`` to start tracking
+        changes on the given stream.  The returned :class:`StreamUpdate`
+        contains a ``latest_marker`` that must be passed to
+        :meth:`retrieve_stream_update` to fetch subsequent changes.
+
+        This is a lightweight alternative to WebSocket channels for
+        polling-based integrations.
+
+        Args:
+            web_id: WebID of the PI Point or AF attribute to track.
+
+        Returns:
+            A :class:`StreamUpdate` with the initial marker and any
+            events available at registration time.
+
+        Raises:
+            NotFoundError: If no stream with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = self._client.post(
+            f"/streams/{quote(web_id, safe='')}/updates",
+        )
+        raise_for_response(resp)
+        return StreamUpdate.model_validate(resp.json())
+
+    def retrieve_stream_update(
+        self,
+        marker: str,
+    ) -> StreamUpdate:
+        """Retrieve incremental updates since a previous marker.
+
+        Calls ``GET /streams/updates/{marker}`` to fetch new events
+        that have occurred since the marker was issued.  The returned
+        :class:`StreamUpdate` contains a new ``latest_marker`` for
+        chaining subsequent calls.
+
+        Typical usage::
+
+            update = client.streams.register_stream_update(web_id)
+            marker = update.latest_marker
+            # ... wait ...
+            update = client.streams.retrieve_stream_update(marker)
+            for event in update.events:
+                process(event)
+            marker = update.latest_marker  # use for next call
+
+        Args:
+            marker: The marker string from a previous
+                :meth:`register_stream_update` or
+                :meth:`retrieve_stream_update` call.
+
+        Returns:
+            A :class:`StreamUpdate` with new events and an updated
+            marker.
+
+        Raises:
+            PIWebAPIError: If the marker is invalid or expired.
+        """
+        resp = self._client.get(
+            f"/streams/updates/{quote(marker, safe='')}",
+        )
+        raise_for_response(resp)
+        return StreamUpdate.model_validate(resp.json())
+
 
 class AsyncStreamsMixin:
     """Async methods for reading and writing PI stream values. Mixed into the async client class."""
@@ -775,3 +846,56 @@ class AsyncStreamsMixin:
             json=values,
         )
         await raise_for_response_async(resp)
+
+    async def register_stream_update(
+        self,
+        web_id: str,
+    ) -> StreamUpdate:
+        """Register for incremental stream updates (marker-based).
+
+        Calls ``POST /streams/{webId}/updates`` to start tracking
+        changes on the given stream.
+
+        Args:
+            web_id: WebID of the PI Point or AF attribute to track.
+
+        Returns:
+            A :class:`StreamUpdate` with the initial marker and any
+            events available at registration time.
+
+        Raises:
+            NotFoundError: If no stream with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = await self._client.post(
+            f"/streams/{quote(web_id, safe='')}/updates",
+        )
+        await raise_for_response_async(resp)
+        return StreamUpdate.model_validate(resp.json())
+
+    async def retrieve_stream_update(
+        self,
+        marker: str,
+    ) -> StreamUpdate:
+        """Retrieve incremental updates since a previous marker.
+
+        Calls ``GET /streams/updates/{marker}``.
+
+        Args:
+            marker: The marker string from a previous
+                :meth:`register_stream_update` or
+                :meth:`retrieve_stream_update` call.
+
+        Returns:
+            A :class:`StreamUpdate` with new events and an updated
+            marker.
+
+        Raises:
+            PIWebAPIError: If the marker is invalid or expired.
+        """
+        resp = await self._client.get(
+            f"/streams/updates/{quote(marker, safe='')}",
+        )
+        await raise_for_response_async(resp)
+        return StreamUpdate.model_validate(resp.json())
