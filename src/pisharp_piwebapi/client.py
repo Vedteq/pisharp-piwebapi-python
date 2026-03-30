@@ -17,6 +17,10 @@ from pisharp_piwebapi.elementtemplates import (
     AsyncElementTemplatesMixin,
     ElementTemplatesMixin,
 )
+from pisharp_piwebapi.enumerationsets import (
+    AsyncEnumerationSetsMixin,
+    EnumerationSetsMixin,
+)
 from pisharp_piwebapi.eventframes import AsyncEventFramesMixin, EventFramesMixin
 from pisharp_piwebapi.exceptions import raise_for_response, raise_for_response_async
 from pisharp_piwebapi.models import PISystemInfo
@@ -112,6 +116,13 @@ class _ElementTemplatesAccessor(ElementTemplatesMixin):
         self._client = client
 
 
+class _EnumerationSetsAccessor(EnumerationSetsMixin):
+    """Namespace for enumeration set operations on the sync client."""
+
+    def __init__(self, client: httpx.Client) -> None:
+        self._client = client
+
+
 class _AssetServersAccessor(AssetServersMixin):
     """Namespace for asset server operations on the sync client."""
 
@@ -184,6 +195,13 @@ class _AsyncEventFramesAccessor(AsyncEventFramesMixin):
 
 class _AsyncElementTemplatesAccessor(AsyncElementTemplatesMixin):
     """Namespace for element template operations on the async client."""
+
+    def __init__(self, client: httpx.AsyncClient) -> None:
+        self._client = client
+
+
+class _AsyncEnumerationSetsAccessor(AsyncEnumerationSetsMixin):
+    """Namespace for enumeration set operations on the async client."""
 
     def __init__(self, client: httpx.AsyncClient) -> None:
         self._client = client
@@ -309,6 +327,7 @@ class PIWebAPIClient(BatchMixin, PaginationMixin):
         self.elements = _ElementsAccessor(self._client)
         self.eventframes = _EventFramesAccessor(self._client)
         self.elementtemplates = _ElementTemplatesAccessor(self._client)
+        self.enumerationsets = _EnumerationSetsAccessor(self._client)
         self.assetservers = _AssetServersAccessor(self._client)
         self.dataservers = _DataServersAccessor(self._client)
         self.databases = _DatabasesAccessor(self._client)
@@ -439,6 +458,7 @@ class AsyncPIWebAPIClient(AsyncBatchMixin, AsyncPaginationMixin):
         self.elements = _AsyncElementsAccessor(self._client)
         self.eventframes = _AsyncEventFramesAccessor(self._client)
         self.elementtemplates = _AsyncElementTemplatesAccessor(self._client)
+        self.enumerationsets = _AsyncEnumerationSetsAccessor(self._client)
         self.assetservers = _AsyncAssetServersAccessor(self._client)
         self.dataservers = _AsyncDataServersAccessor(self._client)
         self.databases = _AsyncDatabasesAccessor(self._client)
