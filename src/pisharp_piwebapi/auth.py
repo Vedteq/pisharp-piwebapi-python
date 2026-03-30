@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import httpx
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
 
 
 def basic_auth(username: str, password: str) -> httpx.BasicAuth:
@@ -39,6 +44,27 @@ def kerberos_auth() -> httpx.Auth:
     return HTTPSPNEGOAuth()  # type: ignore[no-any-return]
 
 
+class _RedactedAuth(httpx.Auth):
+    """Wrapper that delegates to an inner auth handler but redacts repr.
+
+    Prevents credential exposure when the auth object is logged or
+    printed (e.g. via httpx client repr or debug output).
+    """
+
+    def __init__(self, inner: httpx.Auth, label: str = "Auth") -> None:
+        self._inner = inner
+        self._label = label
+
+    def auth_flow(
+        self, request: httpx.Request
+    ) -> Generator[httpx.Request, httpx.Response, None]:
+        """Delegate the auth flow to the wrapped handler."""
+        yield from self._inner.auth_flow(request)
+
+    def __repr__(self) -> str:
+        return f"{self._label}(credentials=<redacted>)"
+
+
 def ntlm_auth(username: str, password: str) -> httpx.Auth:
     """Create NTLM authentication for PI Web API on Windows domains.
 
@@ -53,7 +79,7 @@ def ntlm_auth(username: str, password: str) -> httpx.Auth:
         password: User password.
 
     Returns:
-        NTLM auth instance for httpx.
+        NTLM auth instance for httpx (with credentials redacted in repr).
 
     Raises:
         ImportError: If ``httpx-ntlm`` is not installed.
@@ -65,4 +91,6 @@ def ntlm_auth(username: str, password: str) -> httpx.Auth:
             "NTLM auth requires the 'ntlm' extra. "
             "Install with: pip install pisharp-piwebapi[ntlm]"
         ) from None
-    return HttpNtlmAuth(username, password)  # type: ignore[no-any-return]
+    return _RedactedAuth(
+        HttpNtlmAuth(username, password), label="NtlmAuth"
+    )

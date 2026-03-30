@@ -3,7 +3,7 @@
 import httpx
 import pytest
 
-from pisharp_piwebapi.auth import basic_auth, kerberos_auth, ntlm_auth
+from pisharp_piwebapi.auth import _RedactedAuth, basic_auth, kerberos_auth, ntlm_auth
 
 
 def test_basic_auth_returns_httpx_auth() -> None:
@@ -40,3 +40,24 @@ def test_ntlm_auth_message_mentions_extra() -> None:
         pytest.skip("httpx-ntlm is installed")
     except ImportError as e:
         assert "pisharp-piwebapi[ntlm]" in str(e)
+
+
+def test_ntlm_auth_returns_redacted_wrapper() -> None:
+    """ntlm_auth wraps the auth object so repr does not leak credentials."""
+    try:
+        auth = ntlm_auth("DOMAIN\\user", "s3cret!")
+    except ImportError:
+        pytest.skip("httpx-ntlm is not installed")
+    assert isinstance(auth, _RedactedAuth)
+    r = repr(auth)
+    assert "s3cret!" not in r
+    assert "redacted" in r.lower()
+
+
+def test_redacted_auth_repr_hides_credentials() -> None:
+    """_RedactedAuth repr never leaks the inner object's repr."""
+    inner = basic_auth("admin", "p@ssword")
+    wrapped = _RedactedAuth(inner, label="TestAuth")
+    r = repr(wrapped)
+    assert r == "TestAuth(credentials=<redacted>)"
+    assert "p@ssword" not in r

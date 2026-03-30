@@ -306,6 +306,9 @@ class PIWebAPIClient(BatchMixin, PaginationMixin):
         ssl_context: ssl.SSLContext | bool = verify_ssl
         if cert:
             ssl_context = ssl.create_default_context()
+            if not verify_ssl:
+                ssl_context.check_hostname = False
+                ssl_context.verify_mode = ssl.CERT_NONE
             if isinstance(cert, tuple):
                 ssl_context.load_cert_chain(cert[0], cert[1])
             else:
@@ -437,6 +440,9 @@ class AsyncPIWebAPIClient(AsyncBatchMixin, AsyncPaginationMixin):
         ssl_context: ssl.SSLContext | bool = verify_ssl
         if cert:
             ssl_context = ssl.create_default_context()
+            if not verify_ssl:
+                ssl_context.check_hostname = False
+                ssl_context.verify_mode = ssl.CERT_NONE
             if isinstance(cert, tuple):
                 ssl_context.load_cert_chain(cert[0], cert[1])
             else:

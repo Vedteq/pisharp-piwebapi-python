@@ -318,3 +318,29 @@ class TestHttpSchemeWarningSync:
                     username="admin",
                     password="secret",
                 )
+
+
+# ── Security: SSL context with cert + verify_ssl=False ──────────────
+
+
+class TestSslContextSync:
+    def test_cert_with_verify_ssl_false_disables_verification(self):
+        """When cert is provided and verify_ssl=False, TLS verification is off."""
+        import ssl
+        from unittest.mock import patch
+
+        # Patch load_cert_chain to avoid needing real cert files
+        with patch.object(ssl.SSLContext, "load_cert_chain"):
+            with respx.mock(base_url=BASE_URL):
+                client = PIWebAPIClient(
+                    base_url=BASE_URL,
+                    username="admin",
+                    password="secret",
+                    verify_ssl=False,
+                    cert=("/path/to/cert.pem", "/path/to/key.pem"),
+                )
+                ctx = client._client._transport._pool._ssl_context
+                assert isinstance(ctx, ssl.SSLContext)
+                assert ctx.check_hostname is False
+                assert ctx.verify_mode == ssl.CERT_NONE
+                client.close()
