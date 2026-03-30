@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from pisharp_piwebapi.models import PIPoint, StreamValue, StreamValues
+from pisharp_piwebapi.models import PIPoint, StreamSetItem, StreamValue, StreamValues
 
 
 def test_pi_point_from_api_response():
@@ -71,3 +71,69 @@ def test_pi_point_snake_case_access():
     point = PIPoint.model_validate(data)
     assert point.point_class == "classic"
     assert point.engineering_units == "psi"
+
+
+def test_stream_value_null_timestamp():
+    """StreamValue accepts null Timestamp (e.g. Count/PercentGood summaries)."""
+    data = {
+        "Timestamp": None,
+        "Value": 42,
+        "Good": True,
+    }
+    value = StreamValue.model_validate(data)
+    assert value.timestamp is None
+    assert value.value == 42
+
+
+def test_stream_value_missing_timestamp():
+    """StreamValue works when Timestamp key is absent."""
+    data = {"Value": 99, "Good": True}
+    value = StreamValue.model_validate(data)
+    assert value.timestamp is None
+    assert value.value == 99
+
+
+def test_stream_value_identity_fields():
+    """StreamValue captures WebId, Name, Path from streamset snapshot responses."""
+    data = {
+        "WebId": "P0abc",
+        "Name": "sinusoid",
+        "Path": "\\\\SERVER\\sinusoid",
+        "Timestamp": "2024-06-01T12:00:00Z",
+        "Value": 3.14,
+        "Good": True,
+    }
+    value = StreamValue.model_validate(data)
+    assert value.web_id == "P0abc"
+    assert value.name == "sinusoid"
+    assert value.path == "\\\\SERVER\\sinusoid"
+
+
+def test_stream_set_item_errors_field():
+    """StreamSetItem exposes Errors for partial-failure detection."""
+    data = {
+        "WebId": "P0bad",
+        "Name": "deleted_tag",
+        "Path": "",
+        "Items": [],
+        "Errors": ["PI Point not found."],
+        "Links": {},
+    }
+    item = StreamSetItem.model_validate(data)
+    assert len(item.errors) == 1
+    assert "not found" in item.errors[0]
+    assert len(item.items) == 0
+
+
+def test_stream_set_item_no_errors_by_default():
+    """StreamSetItem.errors defaults to empty list."""
+    data = {
+        "WebId": "P0ok",
+        "Name": "good_tag",
+        "Items": [
+            {"Timestamp": "2024-06-01T12:00:00Z", "Value": 1.0, "Good": True},
+        ],
+    }
+    item = StreamSetItem.model_validate(data)
+    assert item.errors == []
+    assert len(item.items) == 1

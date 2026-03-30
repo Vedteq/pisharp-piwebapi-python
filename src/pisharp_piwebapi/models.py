@@ -61,15 +61,23 @@ class PIAttribute(BaseModel):
 
 
 class StreamValue(BaseModel):
-    """A single timestamped value from a PI stream."""
+    """A single timestamped value from a PI stream.
 
-    timestamp: datetime = Field(alias="Timestamp")
+    The ``timestamp`` field is optional because PI Web API returns
+    ``null`` for certain summary types (e.g. ``Count``,
+    ``PercentGood``, ``Total``) where a timestamp is not meaningful.
+    """
+
+    timestamp: datetime | None = Field(alias="Timestamp", default=None)
     value: Any = Field(alias="Value")
     units_abbreviation: str = Field(alias="UnitsAbbreviation", default="")
     good: bool = Field(alias="Good", default=True)
     questionable: bool = Field(alias="Questionable", default=False)
     substituted: bool = Field(alias="Substituted", default=False)
     annotated: bool = Field(alias="Annotated", default=False)
+    web_id: str = Field(alias="WebId", default="")
+    name: str = Field(alias="Name", default="")
+    path: str = Field(alias="Path", default="")
 
     model_config = {"populate_by_name": True}
 
@@ -377,12 +385,19 @@ class StreamSummary(BaseModel):
 
 
 class StreamSetItem(BaseModel):
-    """A single stream's data within a streamset response."""
+    """A single stream's data within a streamset response.
+
+    When a partial failure occurs (e.g. one tag is deleted or
+    access-denied), PI Web API populates the ``errors`` list instead
+    of ``items``.  Check ``errors`` to detect per-stream failures in
+    multi-tag queries.
+    """
 
     web_id: str = Field(alias="WebId", default="")
     name: str = Field(alias="Name", default="")
     path: str = Field(alias="Path", default="")
     items: list[StreamValue] = Field(alias="Items", default_factory=list)
+    errors: list[str] = Field(alias="Errors", default_factory=list)
     units_abbreviation: str = Field(alias="UnitsAbbreviation", default="")
     links: dict[str, str] = Field(alias="Links", default_factory=dict)
 
