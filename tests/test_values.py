@@ -850,3 +850,267 @@ async def test_async_get_end_404_raises() -> None:
         streams = _AsyncStreams(client)
         with pytest.raises(NotFoundError):
             await streams.get_end(WEB_ID)
+
+
+# ===========================================================================
+# Sync — get_recorded_at_time
+# ===========================================================================
+
+
+@respx.mock
+def test_get_recorded_at_time_happy_path() -> None:
+    """get_recorded_at_time returns a single StreamValue."""
+    respx.get(f"{BASE}/streams/{WEB_ID}/recordedattime").mock(
+        return_value=httpx.Response(200, json=VALUE_PAYLOAD)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        streams = _SyncStreams(client)
+        val = streams.get_recorded_at_time(WEB_ID, time="2024-06-01T12:00:00Z")
+
+    assert isinstance(val, StreamValue)
+    assert val.value == pytest.approx(3.14)
+
+
+@respx.mock
+def test_get_recorded_at_time_passes_params() -> None:
+    """get_recorded_at_time forwards time and retrievalMode."""
+    route = respx.get(f"{BASE}/streams/{WEB_ID}/recordedattime").mock(
+        return_value=httpx.Response(200, json=VALUE_PAYLOAD)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        streams = _SyncStreams(client)
+        streams.get_recorded_at_time(
+            WEB_ID, time="2024-06-01T12:00:00Z", retrieval_mode="AtOrBefore"
+        )
+
+    raw = route.calls.last.request.url.query.decode()
+    assert "time=2024-06-01" in raw
+    assert "retrievalMode=AtOrBefore" in raw
+
+
+@respx.mock
+def test_get_recorded_at_time_404_raises() -> None:
+    """get_recorded_at_time raises NotFoundError on 404."""
+    respx.get(f"{BASE}/streams/{WEB_ID}/recordedattime").mock(
+        return_value=httpx.Response(404, json={"Message": "Not found"})
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        streams = _SyncStreams(client)
+        with pytest.raises(NotFoundError):
+            streams.get_recorded_at_time(WEB_ID, time="*")
+
+
+# ===========================================================================
+# Async — get_recorded_at_time
+# ===========================================================================
+
+
+@respx.mock
+async def test_async_get_recorded_at_time_happy_path() -> None:
+    """Async get_recorded_at_time returns a StreamValue."""
+    respx.get(f"{BASE}/streams/{WEB_ID}/recordedattime").mock(
+        return_value=httpx.Response(200, json=VALUE_PAYLOAD)
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        streams = _AsyncStreams(client)
+        val = await streams.get_recorded_at_time(WEB_ID, time="*-1h")
+
+    assert isinstance(val, StreamValue)
+    assert val.value == pytest.approx(3.14)
+
+
+@respx.mock
+async def test_async_get_recorded_at_time_404_raises() -> None:
+    """Async get_recorded_at_time raises NotFoundError on 404."""
+    respx.get(f"{BASE}/streams/{WEB_ID}/recordedattime").mock(
+        return_value=httpx.Response(404, json={"Message": "Not found"})
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        streams = _AsyncStreams(client)
+        with pytest.raises(NotFoundError):
+            await streams.get_recorded_at_time(WEB_ID, time="*")
+
+
+# ===========================================================================
+# Sync — get_recorded_at_times
+# ===========================================================================
+
+
+@respx.mock
+def test_get_recorded_at_times_happy_path() -> None:
+    """get_recorded_at_times returns a StreamValues collection."""
+    respx.get(f"{BASE}/streams/{WEB_ID}/recordedattimes").mock(
+        return_value=httpx.Response(200, json=RECORDED_PAYLOAD)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        streams = _SyncStreams(client)
+        vals = streams.get_recorded_at_times(
+            WEB_ID,
+            times=["2024-06-01T11:00:00Z", "2024-06-01T12:00:00Z"],
+        )
+
+    assert isinstance(vals, StreamValues)
+    assert len(vals) == 2
+
+
+@respx.mock
+def test_get_recorded_at_times_passes_params() -> None:
+    """get_recorded_at_times sends repeated time params and retrievalMode."""
+    route = respx.get(f"{BASE}/streams/{WEB_ID}/recordedattimes").mock(
+        return_value=httpx.Response(200, json=RECORDED_PAYLOAD)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        streams = _SyncStreams(client)
+        streams.get_recorded_at_times(
+            WEB_ID,
+            times=["2024-06-01T11:00:00Z", "2024-06-01T12:00:00Z"],
+            retrieval_mode="AtOrBefore",
+        )
+
+    raw = route.calls.last.request.url.query.decode()
+    assert "retrievalMode=AtOrBefore" in raw
+    assert raw.count("time=") == 2
+
+
+@respx.mock
+def test_get_recorded_at_times_404_raises() -> None:
+    """get_recorded_at_times raises NotFoundError on 404."""
+    respx.get(f"{BASE}/streams/{WEB_ID}/recordedattimes").mock(
+        return_value=httpx.Response(404, json={"Message": "Not found"})
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        streams = _SyncStreams(client)
+        with pytest.raises(NotFoundError):
+            streams.get_recorded_at_times(WEB_ID, times=["*"])
+
+
+# ===========================================================================
+# Async — get_recorded_at_times
+# ===========================================================================
+
+
+@respx.mock
+async def test_async_get_recorded_at_times_happy_path() -> None:
+    """Async get_recorded_at_times returns a StreamValues collection."""
+    respx.get(f"{BASE}/streams/{WEB_ID}/recordedattimes").mock(
+        return_value=httpx.Response(200, json=RECORDED_PAYLOAD)
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        streams = _AsyncStreams(client)
+        vals = await streams.get_recorded_at_times(
+            WEB_ID, times=["2024-06-01T11:00:00Z"]
+        )
+
+    assert isinstance(vals, StreamValues)
+
+
+@respx.mock
+async def test_async_get_recorded_at_times_404_raises() -> None:
+    """Async get_recorded_at_times raises NotFoundError on 404."""
+    respx.get(f"{BASE}/streams/{WEB_ID}/recordedattimes").mock(
+        return_value=httpx.Response(404, json={"Message": "Not found"})
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        streams = _AsyncStreams(client)
+        with pytest.raises(NotFoundError):
+            await streams.get_recorded_at_times(WEB_ID, times=["*"])
+
+
+# ===========================================================================
+# Sync — get_interpolated_at_times
+# ===========================================================================
+
+
+@respx.mock
+def test_get_interpolated_at_times_happy_path() -> None:
+    """get_interpolated_at_times returns a StreamValues collection."""
+    respx.get(f"{BASE}/streams/{WEB_ID}/interpolatedattimes").mock(
+        return_value=httpx.Response(200, json=RECORDED_PAYLOAD)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        streams = _SyncStreams(client)
+        vals = streams.get_interpolated_at_times(
+            WEB_ID,
+            times=["2024-06-01T11:00:00Z", "2024-06-01T12:00:00Z"],
+        )
+
+    assert isinstance(vals, StreamValues)
+    assert len(vals) == 2
+
+
+@respx.mock
+def test_get_interpolated_at_times_passes_time_params() -> None:
+    """get_interpolated_at_times sends repeated time query params."""
+    route = respx.get(f"{BASE}/streams/{WEB_ID}/interpolatedattimes").mock(
+        return_value=httpx.Response(200, json=RECORDED_PAYLOAD)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        streams = _SyncStreams(client)
+        streams.get_interpolated_at_times(
+            WEB_ID,
+            times=["2024-06-01T11:00:00Z", "2024-06-01T12:00:00Z"],
+        )
+
+    raw = route.calls.last.request.url.query.decode()
+    assert raw.count("time=") == 2
+
+
+@respx.mock
+def test_get_interpolated_at_times_404_raises() -> None:
+    """get_interpolated_at_times raises NotFoundError on 404."""
+    respx.get(f"{BASE}/streams/{WEB_ID}/interpolatedattimes").mock(
+        return_value=httpx.Response(404, json={"Message": "Not found"})
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        streams = _SyncStreams(client)
+        with pytest.raises(NotFoundError):
+            streams.get_interpolated_at_times(WEB_ID, times=["*"])
+
+
+# ===========================================================================
+# Async — get_interpolated_at_times
+# ===========================================================================
+
+
+@respx.mock
+async def test_async_get_interpolated_at_times_happy_path() -> None:
+    """Async get_interpolated_at_times returns a StreamValues collection."""
+    respx.get(f"{BASE}/streams/{WEB_ID}/interpolatedattimes").mock(
+        return_value=httpx.Response(200, json=RECORDED_PAYLOAD)
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        streams = _AsyncStreams(client)
+        vals = await streams.get_interpolated_at_times(
+            WEB_ID,
+            times=["2024-06-01T11:00:00Z", "2024-06-01T12:00:00Z"],
+        )
+
+    assert isinstance(vals, StreamValues)
+    assert len(vals) == 2
+
+
+@respx.mock
+async def test_async_get_interpolated_at_times_404_raises() -> None:
+    """Async get_interpolated_at_times raises NotFoundError on 404."""
+    respx.get(f"{BASE}/streams/{WEB_ID}/interpolatedattimes").mock(
+        return_value=httpx.Response(404, json={"Message": "Not found"})
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        streams = _AsyncStreams(client)
+        with pytest.raises(NotFoundError):
+            await streams.get_interpolated_at_times(WEB_ID, times=["*"])

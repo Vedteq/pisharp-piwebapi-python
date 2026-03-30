@@ -239,6 +239,114 @@ class StreamsMixin:
         raise_for_response(resp)
         return StreamValues.model_validate(resp.json())
 
+    def get_recorded_at_time(
+        self,
+        web_id: str,
+        time: str,
+        retrieval_mode: str = "Auto",
+    ) -> StreamValue:
+        """Read a single recorded value at (or near) a specific time.
+
+        Calls ``GET /streams/{webId}/recordedattime``.
+
+        Args:
+            web_id: WebID of the PI Point or AF attribute.
+            time: The timestamp to retrieve a value for, as a PI time
+                string (e.g. ``"2024-06-01T12:00:00Z"``, ``"*-1h"``).
+            retrieval_mode: How to select the value relative to *time*.
+                One of ``"Auto"`` (default), ``"AtOrBefore"``,
+                ``"Before"``, ``"AtOrAfter"``, ``"After"``, or
+                ``"Exact"``.
+
+        Returns:
+            A single :class:`StreamValue` at the requested time.
+
+        Raises:
+            NotFoundError: If no stream with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = self._client.get(
+            f"/streams/{quote(web_id, safe='')}/recordedattime",
+            params={"time": time, "retrievalMode": retrieval_mode},
+        )
+        raise_for_response(resp)
+        return StreamValue.model_validate(resp.json())
+
+    def get_recorded_at_times(
+        self,
+        web_id: str,
+        times: list[str],
+        retrieval_mode: str = "Auto",
+    ) -> StreamValues:
+        """Read recorded values at multiple specific times.
+
+        Calls ``GET /streams/{webId}/recordedattimes``.  The server
+        returns one value per requested timestamp, selected according
+        to *retrieval_mode*.
+
+        Args:
+            web_id: WebID of the PI Point or AF attribute.
+            times: List of PI time strings (e.g.
+                ``["2024-06-01T11:00:00Z", "2024-06-01T12:00:00Z"]``).
+            retrieval_mode: How to select values relative to each time.
+                Defaults to ``"Auto"``.
+
+        Returns:
+            A :class:`StreamValues` collection with one value per
+            requested time.
+
+        Raises:
+            NotFoundError: If no stream with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        params: list[tuple[str, str | int | float | bool | None]] = [
+            ("retrievalMode", retrieval_mode),
+        ]
+        for t in times:
+            params.append(("time", t))
+        resp = self._client.get(
+            f"/streams/{quote(web_id, safe='')}/recordedattimes",
+            params=params,
+        )
+        raise_for_response(resp)
+        return StreamValues.model_validate(resp.json())
+
+    def get_interpolated_at_times(
+        self,
+        web_id: str,
+        times: list[str],
+    ) -> StreamValues:
+        """Read interpolated values at specific times.
+
+        Calls ``GET /streams/{webId}/interpolatedattimes``.  The server
+        computes an interpolated value at each requested timestamp.
+
+        Args:
+            web_id: WebID of the PI Point or AF attribute.
+            times: List of PI time strings (e.g.
+                ``["2024-06-01T11:00:00Z", "2024-06-01T12:00:00Z"]``).
+
+        Returns:
+            A :class:`StreamValues` collection with one interpolated
+            value per requested time.
+
+        Raises:
+            NotFoundError: If no stream with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        params: list[tuple[str, str | int | float | bool | None]] = [
+            ("time", t) for t in times
+        ]
+        resp = self._client.get(
+            f"/streams/{quote(web_id, safe='')}/interpolatedattimes",
+            params=params,
+        )
+        raise_for_response(resp)
+        return StreamValues.model_validate(resp.json())
+
     def update_value(
         self,
         web_id: str,
@@ -510,6 +618,109 @@ class AsyncStreamsMixin:
                 "endTime": end_time,
                 "intervals": intervals,
             },
+        )
+        await raise_for_response_async(resp)
+        return StreamValues.model_validate(resp.json())
+
+    async def get_recorded_at_time(
+        self,
+        web_id: str,
+        time: str,
+        retrieval_mode: str = "Auto",
+    ) -> StreamValue:
+        """Read a single recorded value at (or near) a specific time.
+
+        Calls ``GET /streams/{webId}/recordedattime``.
+
+        Args:
+            web_id: WebID of the PI Point or AF attribute.
+            time: The timestamp to retrieve a value for, as a PI time
+                string (e.g. ``"2024-06-01T12:00:00Z"``, ``"*-1h"``).
+            retrieval_mode: How to select the value relative to *time*.
+                One of ``"Auto"`` (default), ``"AtOrBefore"``,
+                ``"Before"``, ``"AtOrAfter"``, ``"After"``, or
+                ``"Exact"``.
+
+        Returns:
+            A single :class:`StreamValue` at the requested time.
+
+        Raises:
+            NotFoundError: If no stream with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = await self._client.get(
+            f"/streams/{quote(web_id, safe='')}/recordedattime",
+            params={"time": time, "retrievalMode": retrieval_mode},
+        )
+        await raise_for_response_async(resp)
+        return StreamValue.model_validate(resp.json())
+
+    async def get_recorded_at_times(
+        self,
+        web_id: str,
+        times: list[str],
+        retrieval_mode: str = "Auto",
+    ) -> StreamValues:
+        """Read recorded values at multiple specific times.
+
+        Calls ``GET /streams/{webId}/recordedattimes``.
+
+        Args:
+            web_id: WebID of the PI Point or AF attribute.
+            times: List of PI time strings.
+            retrieval_mode: How to select values relative to each time.
+                Defaults to ``"Auto"``.
+
+        Returns:
+            A :class:`StreamValues` collection with one value per
+            requested time.
+
+        Raises:
+            NotFoundError: If no stream with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        params: list[tuple[str, str | int | float | bool | None]] = [
+            ("retrievalMode", retrieval_mode),
+        ]
+        for t in times:
+            params.append(("time", t))
+        resp = await self._client.get(
+            f"/streams/{quote(web_id, safe='')}/recordedattimes",
+            params=params,
+        )
+        await raise_for_response_async(resp)
+        return StreamValues.model_validate(resp.json())
+
+    async def get_interpolated_at_times(
+        self,
+        web_id: str,
+        times: list[str],
+    ) -> StreamValues:
+        """Read interpolated values at specific times.
+
+        Calls ``GET /streams/{webId}/interpolatedattimes``.
+
+        Args:
+            web_id: WebID of the PI Point or AF attribute.
+            times: List of PI time strings.
+
+        Returns:
+            A :class:`StreamValues` collection with one interpolated
+            value per requested time.
+
+        Raises:
+            NotFoundError: If no stream with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        params: list[tuple[str, str | int | float | bool | None]] = [
+            ("time", t) for t in times
+        ]
+        resp = await self._client.get(
+            f"/streams/{quote(web_id, safe='')}/interpolatedattimes",
+            params=params,
         )
         await raise_for_response_async(resp)
         return StreamValues.model_validate(resp.json())
