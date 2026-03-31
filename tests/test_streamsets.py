@@ -181,6 +181,36 @@ def test_get_recorded_ad_hoc_passes_params() -> None:
 
 
 @respx.mock
+def test_get_recorded_ad_hoc_boundary_type() -> None:
+    """get_recorded_ad_hoc forwards boundaryType query parameter."""
+    route = respx.get(f"{BASE}/streamsets/recorded").mock(
+        return_value=httpx.Response(200, json=RECORDED_PAYLOAD)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        ss = _SyncStreamSets(client)
+        ss.get_recorded_ad_hoc([WEB_ID_A], boundary_type="Outside")
+
+    raw_query = route.calls.last.request.url.query.decode()
+    assert "boundaryType=Outside" in raw_query
+
+
+@respx.mock
+def test_get_recorded_ad_hoc_boundary_type_omitted_by_default() -> None:
+    """get_recorded_ad_hoc omits boundaryType when not provided."""
+    route = respx.get(f"{BASE}/streamsets/recorded").mock(
+        return_value=httpx.Response(200, json=RECORDED_PAYLOAD)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        ss = _SyncStreamSets(client)
+        ss.get_recorded_ad_hoc([WEB_ID_A])
+
+    raw_query = route.calls.last.request.url.query.decode()
+    assert "boundaryType" not in raw_query
+
+
+@respx.mock
 def test_get_recorded_ad_hoc_server_error_raises() -> None:
     """get_recorded_ad_hoc raises ServerError on 500."""
     respx.get(f"{BASE}/streamsets/recorded").mock(

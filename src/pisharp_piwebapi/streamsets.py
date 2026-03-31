@@ -99,6 +99,8 @@ class StreamSetsMixin:
         start_time: str = "-1h",
         end_time: str = "*",
         max_count: int = 1000,
+        *,
+        boundary_type: str | None = None,
     ) -> list[StreamSetItem]:
         """Read recorded (historian) values for multiple streams in one call.
 
@@ -112,6 +114,10 @@ class StreamSetsMixin:
                 Defaults to ``"*"``.
             max_count: Maximum number of values **per stream** to return.
                 Defaults to ``1000``.
+            boundary_type: Controls how boundary events are included.
+                One of ``"Inside"``, ``"Outside"``, or
+                ``"Interpolated"``.  When ``None`` (default) the server
+                uses its own default.
 
         Returns:
             List of :class:`StreamSetItem` objects, one per WebID.  Each
@@ -128,6 +134,8 @@ class StreamSetsMixin:
             ("endTime", end_time),
             ("maxCount", max_count),
         ]
+        if boundary_type is not None:
+            params.append(("boundaryType", boundary_type))
         resp = self._client.get("/streamsets/recorded", params=params)
         raise_for_response(resp)
         return _parse_streamset_items(resp.json())
@@ -176,6 +184,8 @@ class StreamSetsMixin:
         end_time: str = "*",
         max_count: int = 1000,
         name_filter: str = "*",
+        *,
+        boundary_type: str | None = None,
     ) -> list[StreamSetItem]:
         """Read recorded values for all attributes of an AF element.
 
@@ -190,6 +200,10 @@ class StreamSetsMixin:
             max_count: Maximum number of values per attribute. Defaults to
                 ``1000``.
             name_filter: Attribute name pattern. Defaults to ``"*"`` (all).
+            boundary_type: Controls how boundary events are included.
+                One of ``"Inside"``, ``"Outside"``, or
+                ``"Interpolated"``.  When ``None`` (default) the server
+                uses its own default.
 
         Returns:
             List of :class:`StreamSetItem` objects, one per attribute.
@@ -199,14 +213,17 @@ class StreamSetsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        params: dict[str, str | int] = {
+            "startTime": start_time,
+            "endTime": end_time,
+            "maxCount": max_count,
+            "nameFilter": name_filter,
+        }
+        if boundary_type is not None:
+            params["boundaryType"] = boundary_type
         resp = self._client.get(
             f"/streamsets/{quote(element_web_id, safe='')}/recorded",
-            params={
-                "startTime": start_time,
-                "endTime": end_time,
-                "maxCount": max_count,
-                "nameFilter": name_filter,
-            },
+            params=params,
         )
         raise_for_response(resp)
         return _parse_streamset_items(resp.json())
@@ -328,6 +345,8 @@ class AsyncStreamSetsMixin:
         start_time: str = "-1h",
         end_time: str = "*",
         max_count: int = 1000,
+        *,
+        boundary_type: str | None = None,
     ) -> list[StreamSetItem]:
         """Read recorded (historian) values for multiple streams in one call.
 
@@ -338,6 +357,10 @@ class AsyncStreamSetsMixin:
             start_time: Start time as a PI time string. Defaults to ``"-1h"``.
             end_time: End time as a PI time string. Defaults to ``"*"`` (now).
             max_count: Maximum number of values per stream. Defaults to ``1000``.
+            boundary_type: Controls how boundary events are included.
+                One of ``"Inside"``, ``"Outside"``, or
+                ``"Interpolated"``.  When ``None`` (default) the server
+                uses its own default.
 
         Returns:
             List of :class:`StreamSetItem` objects, one per WebID.
@@ -352,6 +375,8 @@ class AsyncStreamSetsMixin:
             ("endTime", end_time),
             ("maxCount", max_count),
         ]
+        if boundary_type is not None:
+            params.append(("boundaryType", boundary_type))
         resp = await self._client.get("/streamsets/recorded", params=params)
         await raise_for_response_async(resp)
         return _parse_streamset_items(resp.json())
@@ -398,6 +423,8 @@ class AsyncStreamSetsMixin:
         end_time: str = "*",
         max_count: int = 1000,
         name_filter: str = "*",
+        *,
+        boundary_type: str | None = None,
     ) -> list[StreamSetItem]:
         """Read recorded values for all attributes of an AF element.
 
@@ -410,6 +437,10 @@ class AsyncStreamSetsMixin:
             max_count: Maximum number of values per attribute. Defaults to
                 ``1000``.
             name_filter: Attribute name pattern. Defaults to ``"*"`` (all).
+            boundary_type: Controls how boundary events are included.
+                One of ``"Inside"``, ``"Outside"``, or
+                ``"Interpolated"``.  When ``None`` (default) the server
+                uses its own default.
 
         Returns:
             List of :class:`StreamSetItem` objects, one per attribute.
@@ -419,14 +450,17 @@ class AsyncStreamSetsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        params: dict[str, str | int] = {
+            "startTime": start_time,
+            "endTime": end_time,
+            "maxCount": max_count,
+            "nameFilter": name_filter,
+        }
+        if boundary_type is not None:
+            params["boundaryType"] = boundary_type
         resp = await self._client.get(
             f"/streamsets/{quote(element_web_id, safe='')}/recorded",
-            params={
-                "startTime": start_time,
-                "endTime": end_time,
-                "maxCount": max_count,
-                "nameFilter": name_filter,
-            },
+            params=params,
         )
         await raise_for_response_async(resp)
         return _parse_streamset_items(resp.json())

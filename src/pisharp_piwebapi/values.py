@@ -43,6 +43,7 @@ class StreamsMixin:
         end_time: str = "*",
         max_count: int = 1000,
         *,
+        boundary_type: str | None = None,
         filter_expression: str | None = None,
     ) -> StreamValues:
         """Read recorded (historian) values from a stream.
@@ -54,6 +55,12 @@ class StreamsMixin:
             end_time: End time as a PI time string. ``"*"`` means now.
                 Defaults to ``"*"``.
             max_count: Maximum number of values to return. Defaults to ``1000``.
+            boundary_type: Controls how boundary events are included.
+                One of ``"Inside"`` (only events strictly within the
+                range), ``"Outside"`` (includes nearest events before
+                start and after end), or ``"Interpolated"`` (inserts
+                interpolated values at exact boundary timestamps).
+                When ``None`` (default) the server uses its own default.
             filter_expression: An optional server-side filter expression.
                 Only events that satisfy the expression are returned.
                 Uses PI performance equation syntax, e.g.
@@ -73,6 +80,8 @@ class StreamsMixin:
             "endTime": end_time,
             "maxCount": max_count,
         }
+        if boundary_type is not None:
+            params["boundaryType"] = boundary_type
         if filter_expression is not None:
             params["filterExpression"] = filter_expression
         resp = self._client.get(
@@ -509,6 +518,7 @@ class AsyncStreamsMixin:
         end_time: str = "*",
         max_count: int = 1000,
         *,
+        boundary_type: str | None = None,
         filter_expression: str | None = None,
     ) -> StreamValues:
         """Read recorded (historian) values from a stream.
@@ -518,6 +528,10 @@ class AsyncStreamsMixin:
             start_time: Start time as a PI time string. Defaults to ``"-1h"``.
             end_time: End time as a PI time string. Defaults to ``"*"`` (now).
             max_count: Maximum number of values to return. Defaults to ``1000``.
+            boundary_type: Controls how boundary events are included.
+                One of ``"Inside"``, ``"Outside"``, or
+                ``"Interpolated"``.  When ``None`` (default) the server
+                uses its own default.
             filter_expression: An optional server-side filter expression.
                 Only events that satisfy the expression are returned.
                 Uses PI performance equation syntax, e.g.
@@ -537,6 +551,8 @@ class AsyncStreamsMixin:
             "endTime": end_time,
             "maxCount": max_count,
         }
+        if boundary_type is not None:
+            params["boundaryType"] = boundary_type
         if filter_expression is not None:
             params["filterExpression"] = filter_expression
         resp = await self._client.get(
