@@ -10,17 +10,23 @@ if TYPE_CHECKING:
     from collections.abc import Generator
 
 
-def basic_auth(username: str, password: str) -> httpx.BasicAuth:
+def basic_auth(username: str, password: str) -> httpx.Auth:
     """Create Basic authentication for PI Web API.
+
+    The returned auth object redacts credentials in its ``repr()`` to
+    prevent accidental exposure in logs or debug output.
 
     Args:
         username: PI Web API username (e.g., "domain\\user" or "user").
         password: PI Web API password.
 
     Returns:
-        httpx.BasicAuth instance to pass to the client.
+        Auth instance for httpx with credentials redacted in repr.
     """
-    return httpx.BasicAuth(username=username, password=password)
+    return _RedactedAuth(
+        httpx.BasicAuth(username=username, password=password),
+        label="BasicAuth",
+    )
 
 
 def kerberos_auth() -> httpx.Auth:

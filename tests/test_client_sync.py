@@ -344,3 +344,23 @@ class TestSslContextSync:
                 assert ctx.check_hostname is False
                 assert ctx.verify_mode == ssl.CERT_NONE
                 client.close()
+
+
+class TestBaseUrlValidationSync:
+    def test_invalid_scheme_raises_value_error(self):
+        """PIWebAPIClient rejects base_url with non-http(s) scheme."""
+        with pytest.raises(ValueError, match="must use http:// or https://"):
+            PIWebAPIClient(
+                base_url="ftp://piserver/piwebapi",
+                username="admin",
+                password="secret",
+            )
+
+    def test_empty_scheme_raises_value_error(self):
+        """PIWebAPIClient rejects base_url without a scheme."""
+        with pytest.raises(ValueError, match="must use http:// or https://"):
+            PIWebAPIClient(
+                base_url="piserver/piwebapi",
+                username="admin",
+                password="secret",
+            )

@@ -277,6 +277,11 @@ class PIWebAPIClient(BatchMixin, PaginationMixin):
             )
 
         parsed_url = urlparse(base_url)
+        if parsed_url.scheme not in ("http", "https"):
+            raise ValueError(
+                f"base_url must use http:// or https://. "
+                f"Got scheme: {parsed_url.scheme!r}"
+            )
         if parsed_url.scheme == "http":
             warnings.warn(
                 "base_url uses http:// — credentials will be sent in "
@@ -412,6 +417,11 @@ class AsyncPIWebAPIClient(AsyncBatchMixin, AsyncPaginationMixin):
             )
 
         parsed_url = urlparse(base_url)
+        if parsed_url.scheme not in ("http", "https"):
+            raise ValueError(
+                f"base_url must use http:// or https://. "
+                f"Got scheme: {parsed_url.scheme!r}"
+            )
         if parsed_url.scheme == "http":
             warnings.warn(
                 "base_url uses http:// — credentials will be sent in "

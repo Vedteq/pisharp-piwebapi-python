@@ -6,10 +6,21 @@ import pytest
 from pisharp_piwebapi.auth import _RedactedAuth, basic_auth, kerberos_auth, ntlm_auth
 
 
-def test_basic_auth_returns_httpx_auth() -> None:
-    """basic_auth returns an httpx.BasicAuth instance."""
+def test_basic_auth_returns_redacted_wrapper() -> None:
+    """basic_auth returns a _RedactedAuth wrapping httpx.BasicAuth."""
     auth = basic_auth("user", "pass")
-    assert isinstance(auth, httpx.BasicAuth)
+    assert isinstance(auth, _RedactedAuth)
+    assert isinstance(auth, httpx.Auth)
+
+
+def test_basic_auth_repr_hides_credentials() -> None:
+    """basic_auth repr does not leak username or password."""
+    auth = basic_auth("admin", "s3cret!")
+    r = repr(auth)
+    assert "s3cret!" not in r
+    assert "admin" not in r
+    assert "BasicAuth" in r
+    assert "redacted" in r.lower()
 
 
 def test_kerberos_auth_import_error() -> None:
