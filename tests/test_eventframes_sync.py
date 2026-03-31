@@ -72,11 +72,11 @@ class TestEventFramesSync:
 
     def test_create(self, sync_client):
         client, mock = sync_client
-        route = mock.post(f"/elements/{ELEM_WEB_ID}/eventframes").mock(
+        route = mock.post(f"/assetdatabases/{DB_WEB_ID}/eventframes").mock(
             return_value=httpx.Response(201)
         )
         client.eventframes.create(
-            ELEM_WEB_ID,
+            DB_WEB_ID,
             "New Alert",
             start_time="2024-06-15T12:00:00Z",
             end_time="2024-06-15T12:30:00Z",
@@ -84,6 +84,24 @@ class TestEventFramesSync:
             severity="Warning",
         )
         assert route.called
+
+    def test_create_with_ref_elements(self, sync_client):
+        client, mock = sync_client
+        route = mock.post(f"/assetdatabases/{DB_WEB_ID}/eventframes").mock(
+            return_value=httpx.Response(201)
+        )
+        client.eventframes.create(
+            DB_WEB_ID,
+            "Element Alert",
+            start_time="2024-06-15T12:00:00Z",
+            end_time="2024-06-15T12:30:00Z",
+            ref_element_web_ids=[ELEM_WEB_ID],
+        )
+        assert route.called
+        body = route.calls[0].request.content
+        import json
+        parsed = json.loads(body)
+        assert parsed["RefElementWebIds"] == [ELEM_WEB_ID]
 
     def test_delete(self, sync_client):
         client, mock = sync_client

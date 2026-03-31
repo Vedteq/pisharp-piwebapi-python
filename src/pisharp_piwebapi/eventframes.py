@@ -135,7 +135,7 @@ class EventFramesMixin:
 
     def create(
         self,
-        element_web_id: str,
+        database_web_id: str,
         name: str,
         start_time: str,
         end_time: str,
@@ -143,20 +143,26 @@ class EventFramesMixin:
         description: str = "",
         template_name: str = "",
         severity: str = "None",
+        ref_element_web_ids: list[str] | None = None,
     ) -> None:
-        """Create an Event Frame on an element.
+        """Create an Event Frame in an AF database.
+
+        Calls ``POST /assetdatabases/{webId}/eventframes``.
 
         Args:
-            element_web_id: WebID of the parent AF element.
+            database_web_id: WebID of the AF database to create the
+                event frame in.
             name: Name for the new Event Frame.
             start_time: Start time as a PI time string.
             end_time: End time as a PI time string.
             description: Optional description.
             template_name: Optional AF event frame template name.
             severity: Severity level. Defaults to ``"None"``.
+            ref_element_web_ids: Optional list of AF element WebIDs to
+                associate with the event frame.
 
         Raises:
-            NotFoundError: If the element WebID is not found.
+            NotFoundError: If the database WebID is not found.
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
@@ -171,8 +177,10 @@ class EventFramesMixin:
             body["TemplateName"] = template_name
         if severity != "None":
             body["Severity"] = severity
+        if ref_element_web_ids:
+            body["RefElementWebIds"] = ref_element_web_ids
         resp = self._client.post(
-            f"/elements/{quote(element_web_id, safe='')}/eventframes",
+            f"/assetdatabases/{quote(database_web_id, safe='')}/eventframes",
             json=body,
         )
         raise_for_response(resp)
@@ -315,7 +323,7 @@ class AsyncEventFramesMixin:
 
     async def create(
         self,
-        element_web_id: str,
+        database_web_id: str,
         name: str,
         start_time: str,
         end_time: str,
@@ -323,20 +331,26 @@ class AsyncEventFramesMixin:
         description: str = "",
         template_name: str = "",
         severity: str = "None",
+        ref_element_web_ids: list[str] | None = None,
     ) -> None:
-        """Create an Event Frame on an element.
+        """Create an Event Frame in an AF database.
+
+        Calls ``POST /assetdatabases/{webId}/eventframes``.
 
         Args:
-            element_web_id: WebID of the parent AF element.
+            database_web_id: WebID of the AF database to create the
+                event frame in.
             name: Name for the new Event Frame.
             start_time: Start time as a PI time string.
             end_time: End time as a PI time string.
             description: Optional description.
             template_name: Optional AF event frame template name.
             severity: Severity level. Defaults to ``"None"``.
+            ref_element_web_ids: Optional list of AF element WebIDs to
+                associate with the event frame.
 
         Raises:
-            NotFoundError: If the element WebID is not found.
+            NotFoundError: If the database WebID is not found.
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
@@ -351,8 +365,10 @@ class AsyncEventFramesMixin:
             body["TemplateName"] = template_name
         if severity != "None":
             body["Severity"] = severity
+        if ref_element_web_ids:
+            body["RefElementWebIds"] = ref_element_web_ids
         resp = await self._client.post(
-            f"/elements/{quote(element_web_id, safe='')}/eventframes",
+            f"/assetdatabases/{quote(database_web_id, safe='')}/eventframes",
             json=body,
         )
         await raise_for_response_async(resp)

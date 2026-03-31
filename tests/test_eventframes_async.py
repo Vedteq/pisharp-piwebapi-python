@@ -69,11 +69,11 @@ class TestEventFramesAsync:
 
     async def test_create(self, async_client):
         client, mock = async_client
-        route = mock.post(f"/elements/{ELEM_WEB_ID}/eventframes").mock(
+        route = mock.post(f"/assetdatabases/{DB_WEB_ID}/eventframes").mock(
             return_value=httpx.Response(201)
         )
         await client.eventframes.create(
-            ELEM_WEB_ID,
+            DB_WEB_ID,
             "New Alert",
             start_time="2024-06-15T12:00:00Z",
             end_time="2024-06-15T12:30:00Z",
