@@ -7,7 +7,7 @@ import pytest
 import respx
 
 from pisharp_piwebapi.batch import AsyncBatchMixin, BatchMixin
-from pisharp_piwebapi.exceptions import AuthenticationError, ServerError
+from pisharp_piwebapi.exceptions import AuthenticationError, BatchError, ServerError
 
 BASE = "https://piserver/piwebapi"
 
@@ -18,6 +18,16 @@ BATCH_RESPONSE = {
         "Headers": {},
         "Content": {"Timestamp": "2024-01-01T00:00:00Z", "Value": 1.0},
     },
+}
+
+BATCH_RESPONSE_PARTIAL_FAILURE = {
+    "1": {"Status": 200, "Headers": {}, "Content": {"WebId": "P0ABC", "Name": "sinusoid"}},
+    "2": {"Status": 404, "Headers": {}, "Content": {"Message": "Not found"}},
+}
+
+BATCH_RESPONSE_MULTI_FAILURE = {
+    "1": {"Status": 404, "Headers": {}, "Content": {"Message": "Not found"}},
+    "2": {"Status": 500, "Headers": {}, "Content": {"Message": "Server error"}},
 }
 
 
@@ -136,3 +146,121 @@ async def test_async_execute_batch_auth_error_raises() -> None:
             await batch.execute_batch({"1": {"Method": "GET", "Resource": "/points"}})
 
     assert exc_info.value.status_code == 401
+
+
+# ===========================================================================
+# Sub-request error detection (sync)
+# ===========================================================================
+
+
+@respx.mock
+def test_execute_batch_partial_failure_raises_batch_error() -> None:
+    """execute_batch raises BatchError when a sub-request fails."""
+    respx.post(f"{BASE}/batch").mock(
+        return_value=httpx.Response(207, json=BATCH_RESPONSE_PARTIAL_FAILURE)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        batch = _SyncBatch(client)
+        with pytest.raises(BatchError) as exc_info:
+            batch.execute_batch(
+                {"1": {"Method": "GET", "Resource": "/points"}, "2": {"Method": "GET", "Resource": "/missing"}},
+            )
+
+    assert len(exc_info.value.errors) == 1
+    assert exc_info.value.errors[0]["RequestId"] == "2"
+    assert exc_info.value.errors[0]["Status"] == 404
+    assert "2" in str(exc_info.value)
+
+
+@respx.mock
+def test_execute_batch_multi_failure_reports_all() -> None:
+    """BatchError includes all failed sub-requests."""
+    respx.post(f"{BASE}/batch").mock(
+        return_value=httpx.Response(207, json=BATCH_RESPONSE_MULTI_FAILURE)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        batch = _SyncBatch(client)
+        with pytest.raises(BatchError) as exc_info:
+            batch.execute_batch(
+                {"1": {"Method": "GET", "Resource": "/a"}, "2": {"Method": "GET", "Resource": "/b"}},
+            )
+
+    assert len(exc_info.value.errors) == 2
+    failed_ids = {e["RequestId"] for e in exc_info.value.errors}
+    assert failed_ids == {"1", "2"}
+
+
+@respx.mock
+def test_execute_batch_raise_on_errors_false_returns_raw() -> None:
+    """execute_batch with raise_on_errors=False returns raw data."""
+    respx.post(f"{BASE}/batch").mock(
+        return_value=httpx.Response(207, json=BATCH_RESPONSE_PARTIAL_FAILURE)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        batch = _SyncBatch(client)
+        result = batch.execute_batch(
+            {"1": {"Method": "GET", "Resource": "/points"}, "2": {"Method": "GET", "Resource": "/missing"}},
+            raise_on_errors=False,
+        )
+
+    assert result["2"]["Status"] == 404
+
+
+@respx.mock
+def test_execute_batch_all_success_no_error() -> None:
+    """execute_batch does not raise when all sub-requests succeed."""
+    respx.post(f"{BASE}/batch").mock(
+        return_value=httpx.Response(207, json=BATCH_RESPONSE)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        batch = _SyncBatch(client)
+        result = batch.execute_batch(
+            {"1": {"Method": "GET", "Resource": "/points"}, "2": {"Method": "GET", "Resource": "/value"}},
+        )
+
+    assert result["1"]["Status"] == 200
+    assert result["2"]["Status"] == 200
+
+
+# ===========================================================================
+# Sub-request error detection (async)
+# ===========================================================================
+
+
+@respx.mock
+async def test_async_execute_batch_partial_failure_raises() -> None:
+    """Async execute_batch raises BatchError on sub-request failure."""
+    respx.post(f"{BASE}/batch").mock(
+        return_value=httpx.Response(207, json=BATCH_RESPONSE_PARTIAL_FAILURE)
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        batch = _AsyncBatch(client)
+        with pytest.raises(BatchError) as exc_info:
+            await batch.execute_batch(
+                {"1": {"Method": "GET", "Resource": "/points"}, "2": {"Method": "GET", "Resource": "/missing"}},
+            )
+
+    assert len(exc_info.value.errors) == 1
+    assert exc_info.value.errors[0]["RequestId"] == "2"
+
+
+@respx.mock
+async def test_async_execute_batch_raise_on_errors_false() -> None:
+    """Async execute_batch with raise_on_errors=False returns raw data."""
+    respx.post(f"{BASE}/batch").mock(
+        return_value=httpx.Response(207, json=BATCH_RESPONSE_PARTIAL_FAILURE)
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        batch = _AsyncBatch(client)
+        result = await batch.execute_batch(
+            {"1": {"Method": "GET", "Resource": "/points"}, "2": {"Method": "GET", "Resource": "/missing"}},
+            raise_on_errors=False,
+        )
+
+    assert result["2"]["Status"] == 404

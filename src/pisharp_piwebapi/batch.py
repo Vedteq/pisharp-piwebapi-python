@@ -4,10 +4,47 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from pisharp_piwebapi.exceptions import raise_for_response, raise_for_response_async
+from pisharp_piwebapi.exceptions import (
+    BatchError,
+    raise_for_response,
+    raise_for_response_async,
+)
 
 if TYPE_CHECKING:
     import httpx
+
+
+def _check_batch_errors(data: dict[str, Any]) -> None:
+    """Inspect batch sub-responses and raise :class:`BatchError` on failures.
+
+    A sub-request is considered failed if its ``"Status"`` field is not
+    in the 2xx range.  When one or more sub-requests fail, a
+    :class:`BatchError` is raised that includes the failing request IDs,
+    status codes, and any error content.
+
+    Args:
+        data: The parsed JSON response from ``POST /batch``.
+
+    Raises:
+        BatchError: If any sub-request has a non-2xx status code.
+    """
+    errors: list[dict[str, Any]] = []
+    for req_id, resp_item in data.items():
+        if not isinstance(resp_item, dict):
+            continue
+        status = resp_item.get("Status", 0)
+        if not (200 <= status < 300):
+            errors.append({
+                "RequestId": req_id,
+                "Status": status,
+                "Content": resp_item.get("Content"),
+            })
+    if errors:
+        failed_ids = [e["RequestId"] for e in errors]
+        raise BatchError(
+            f"Batch sub-request(s) {', '.join(failed_ids)} failed",
+            errors=errors,
+        )
 
 
 class BatchMixin:
@@ -15,7 +52,12 @@ class BatchMixin:
 
     _client: httpx.Client
 
-    def execute_batch(self, requests: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    def execute_batch(
+        self,
+        requests: dict[str, dict[str, Any]],
+        *,
+        raise_on_errors: bool = True,
+    ) -> dict[str, Any]:
         """Execute a batch of PI Web API requests in a single HTTP call.
 
         PI Web API batch requests allow multiple sub-requests to be sent in one
@@ -41,18 +83,28 @@ class BatchMixin:
                         },
                     }
 
+            raise_on_errors: When ``True`` (the default), inspect each
+                sub-response and raise :class:`BatchError` if any
+                sub-request returned a non-2xx status.  Set to ``False``
+                to get the raw response dict and handle errors yourself.
+
         Returns:
             Dict mapping request IDs to response objects.  Each value has
             ``"Status"`` (int), ``"Headers"`` (dict), and ``"Content"`` keys.
 
         Raises:
+            BatchError: If *raise_on_errors* is ``True`` and any
+                sub-request returned a non-2xx status.
             AuthenticationError: If the outer batch request is rejected.
             ServerError: If the server returns a 5xx for the outer request.
             PIWebAPIError: For any other non-2xx outer response.
         """
         resp = self._client.post("/batch", json=requests)
         raise_for_response(resp)
-        return resp.json()  # type: ignore[no-any-return]
+        data: dict[str, Any] = resp.json()
+        if raise_on_errors:
+            _check_batch_errors(data)
+        return data
 
 
 class AsyncBatchMixin:
@@ -60,7 +112,12 @@ class AsyncBatchMixin:
 
     _client: httpx.AsyncClient
 
-    async def execute_batch(self, requests: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    async def execute_batch(
+        self,
+        requests: dict[str, dict[str, Any]],
+        *,
+        raise_on_errors: bool = True,
+    ) -> dict[str, Any]:
         """Execute a batch of PI Web API requests in a single HTTP call.
 
         Args:
@@ -68,15 +125,25 @@ class AsyncBatchMixin:
                 Each entry must have ``"Method"`` and ``"Resource"`` keys, and
                 optionally ``"Content"``, ``"Headers"``, and ``"ParentIds"``.
 
+            raise_on_errors: When ``True`` (the default), inspect each
+                sub-response and raise :class:`BatchError` if any
+                sub-request returned a non-2xx status.  Set to ``False``
+                to get the raw response dict and handle errors yourself.
+
         Returns:
             Dict mapping request IDs to response objects.  Each value has
             ``"Status"`` (int), ``"Headers"`` (dict), and ``"Content"`` keys.
 
         Raises:
+            BatchError: If *raise_on_errors* is ``True`` and any
+                sub-request returned a non-2xx status.
             AuthenticationError: If the outer batch request is rejected.
             ServerError: If the server returns a 5xx for the outer request.
             PIWebAPIError: For any other non-2xx outer response.
         """
         resp = await self._client.post("/batch", json=requests)
         await raise_for_response_async(resp)
-        return resp.json()  # type: ignore[no-any-return]
+        data: dict[str, Any] = resp.json()
+        if raise_on_errors:
+            _check_batch_errors(data)
+        return data
