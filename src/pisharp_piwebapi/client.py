@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 
 import httpx
 
+from pisharp_piwebapi.attributes import AsyncAttributesMixin, AttributesMixin
 from pisharp_piwebapi.auth import basic_auth, kerberos_auth, ntlm_auth
 from pisharp_piwebapi.batch import AsyncBatchMixin, BatchMixin
 from pisharp_piwebapi.calculation import AsyncCalculationMixin, CalculationMixin
@@ -59,6 +60,13 @@ def _build_async_event_hooks() -> dict[str, list[Any]]:
         await raise_for_response_async(response)
 
     return {"response": [_raise_on_error_async]}
+
+
+class _AttributesAccessor(AttributesMixin):
+    """Namespace for attribute operations on the sync client."""
+
+    def __init__(self, client: httpx.Client) -> None:
+        self._client = client
 
 
 class _PointsAccessor(PointsMixin):
@@ -149,6 +157,13 @@ class _SystemAccessor(SystemMixin):
     """Namespace for system operations on the sync client."""
 
     def __init__(self, client: httpx.Client) -> None:
+        self._client = client
+
+
+class _AsyncAttributesAccessor(AsyncAttributesMixin):
+    """Namespace for attribute operations on the async client."""
+
+    def __init__(self, client: httpx.AsyncClient) -> None:
         self._client = client
 
 
@@ -342,6 +357,7 @@ class PIWebAPIClient(BatchMixin, PaginationMixin):
             headers={"Accept": "application/json", "Content-Type": "application/json"},
             event_hooks=_build_event_hooks(),
         )
+        self.attributes = _AttributesAccessor(self._client)
         self.points = _PointsAccessor(self._client)
         self.streams = _StreamsAccessor(self._client)
         self.streamsets = _StreamSetsAccessor(self._client)
@@ -482,6 +498,7 @@ class AsyncPIWebAPIClient(AsyncBatchMixin, AsyncPaginationMixin):
             headers={"Accept": "application/json", "Content-Type": "application/json"},
             event_hooks=_build_async_event_hooks(),
         )
+        self.attributes = _AsyncAttributesAccessor(self._client)
         self.points = _AsyncPointsAccessor(self._client)
         self.streams = _AsyncStreamsAccessor(self._client)
         self.streamsets = _AsyncStreamSetsAccessor(self._client)
