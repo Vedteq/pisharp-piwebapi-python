@@ -121,6 +121,52 @@ class TestEventFramesSync:
         with pytest.raises(NotFoundError):
             client.eventframes.get_by_web_id("MISSING")
 
+    def test_update_close_event_frame(self, sync_client):
+        client, mock = sync_client
+        route = mock.patch(f"/eventframes/{EF_WEB_ID}").mock(
+            return_value=httpx.Response(204)
+        )
+        client.eventframes.update(EF_WEB_ID, end_time="*")
+        assert route.called
+        import json
+        body = json.loads(route.calls[0].request.content)
+        assert body == {"EndTime": "*"}
+
+    def test_update_multiple_fields(self, sync_client):
+        client, mock = sync_client
+        route = mock.patch(f"/eventframes/{EF_WEB_ID}").mock(
+            return_value=httpx.Response(204)
+        )
+        client.eventframes.update(
+            EF_WEB_ID,
+            name="Renamed",
+            description="Updated",
+            severity="Critical",
+        )
+        assert route.called
+        import json
+        body = json.loads(route.calls[0].request.content)
+        assert body["Name"] == "Renamed"
+        assert body["Description"] == "Updated"
+        assert body["Severity"] == "Critical"
+
+    def test_update_no_fields_is_noop(self, sync_client):
+        """update() with no fields should return without HTTP request."""
+        client, _mock = sync_client
+        # No route registered — if update() tries to call the server,
+        # respx will raise ConnectionError.
+        client.eventframes.update(EF_WEB_ID)
+
+    def test_update_not_found(self, sync_client):
+        client, mock = sync_client
+        mock.patch("/eventframes/MISSING").mock(
+            return_value=httpx.Response(
+                404, json={"Message": "Event frame not found."}
+            )
+        )
+        with pytest.raises(NotFoundError):
+            client.eventframes.update("MISSING", end_time="*")
+
     def test_search_unauthorized(self, sync_client):
         client, mock = sync_client
         mock.get(f"/assetdatabases/{DB_WEB_ID}/eventframes").mock(

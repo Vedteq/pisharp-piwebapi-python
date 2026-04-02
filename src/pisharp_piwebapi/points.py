@@ -186,6 +186,54 @@ class PointsMixin:
         )
         raise_for_response(resp)
 
+    def update(
+        self,
+        web_id: str,
+        *,
+        descriptor: str | None = None,
+        engineering_units: str | None = None,
+        point_type: str | None = None,
+        future: bool | None = None,
+        extra_fields: dict[str, Any] | None = None,
+    ) -> None:
+        """Update a PI Point's properties.
+
+        Calls ``PATCH /points/{webId}``.  Only the fields that are provided
+        (not ``None``) will be sent.  Use ``extra_fields`` to set
+        point attributes not covered by explicit parameters (e.g.
+        ``{"Compressing": True, "ExcDevPercent": 1.5}``).
+
+        Args:
+            web_id: WebID of the PI Point to update.
+            descriptor: New point descriptor.
+            engineering_units: New engineering units abbreviation.
+            point_type: New point type (e.g. ``"Float64"``).
+            future: Whether the point stores future data.
+            extra_fields: Additional fields to include in the request body.
+
+        Raises:
+            NotFoundError: If no point with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        validate_web_id(web_id)
+        body: dict[str, Any] = dict(extra_fields) if extra_fields else {}
+        if descriptor is not None:
+            body["Descriptor"] = descriptor
+        if engineering_units is not None:
+            body["EngineeringUnits"] = engineering_units
+        if point_type is not None:
+            body["PointType"] = point_type
+        if future is not None:
+            body["Future"] = future
+        if not body:
+            return
+        resp = self._client.patch(
+            f"/points/{quote(web_id, safe='')}",
+            json=body,
+        )
+        raise_for_response(resp)
+
     def delete_point(self, web_id: str) -> None:
         """Delete a PI Point from the PI Data Server.
 
@@ -368,6 +416,52 @@ class AsyncPointsMixin:
 
         resp = await self._client.post(
             f"/dataservers/{quote(data_server_web_id, safe='')}/points",
+            json=body,
+        )
+        await raise_for_response_async(resp)
+
+    async def update(
+        self,
+        web_id: str,
+        *,
+        descriptor: str | None = None,
+        engineering_units: str | None = None,
+        point_type: str | None = None,
+        future: bool | None = None,
+        extra_fields: dict[str, Any] | None = None,
+    ) -> None:
+        """Update a PI Point's properties.
+
+        Calls ``PATCH /points/{webId}``.  Only the fields that are provided
+        (not ``None``) will be sent.
+
+        Args:
+            web_id: WebID of the PI Point to update.
+            descriptor: New point descriptor.
+            engineering_units: New engineering units abbreviation.
+            point_type: New point type (e.g. ``"Float64"``).
+            future: Whether the point stores future data.
+            extra_fields: Additional fields to include in the request body.
+
+        Raises:
+            NotFoundError: If no point with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        validate_web_id(web_id)
+        body: dict[str, Any] = dict(extra_fields) if extra_fields else {}
+        if descriptor is not None:
+            body["Descriptor"] = descriptor
+        if engineering_units is not None:
+            body["EngineeringUnits"] = engineering_units
+        if point_type is not None:
+            body["PointType"] = point_type
+        if future is not None:
+            body["Future"] = future
+        if not body:
+            return
+        resp = await self._client.patch(
+            f"/points/{quote(web_id, safe='')}",
             json=body,
         )
         await raise_for_response_async(resp)

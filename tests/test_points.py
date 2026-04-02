@@ -718,3 +718,120 @@ async def test_async_delete_point_not_found_raises() -> None:
             await pts.delete_point("NOPE")
 
     assert exc_info.value.status_code == 404
+
+
+# ===========================================================================
+# Sync — update
+# ===========================================================================
+
+
+@respx.mock
+def test_update_point_descriptor() -> None:
+    """update sends PATCH with only the provided fields."""
+    route = respx.patch(f"{BASE}/points/P0ABC123").mock(
+        return_value=httpx.Response(204)
+    )
+    with httpx.Client(base_url=BASE) as client:
+        pts = _SyncPoints(client)
+        pts.update("P0ABC123", descriptor="New desc")
+
+    assert route.called
+    body = json.loads(route.calls.last.request.content)
+    assert body == {"Descriptor": "New desc"}
+
+
+@respx.mock
+def test_update_point_multiple_fields() -> None:
+    """update sends all provided fields."""
+    route = respx.patch(f"{BASE}/points/P0ABC123").mock(
+        return_value=httpx.Response(204)
+    )
+    with httpx.Client(base_url=BASE) as client:
+        pts = _SyncPoints(client)
+        pts.update(
+            "P0ABC123",
+            engineering_units="psi",
+            point_type="Float64",
+            future=True,
+        )
+
+    body = json.loads(route.calls.last.request.content)
+    assert body["EngineeringUnits"] == "psi"
+    assert body["PointType"] == "Float64"
+    assert body["Future"] is True
+
+
+@respx.mock
+def test_update_point_extra_fields() -> None:
+    """update merges extra_fields into the body."""
+    route = respx.patch(f"{BASE}/points/P0ABC123").mock(
+        return_value=httpx.Response(204)
+    )
+    with httpx.Client(base_url=BASE) as client:
+        pts = _SyncPoints(client)
+        pts.update(
+            "P0ABC123",
+            extra_fields={"Compressing": True, "ExcDevPercent": 1.5},
+        )
+
+    body = json.loads(route.calls.last.request.content)
+    assert body["Compressing"] is True
+    assert body["ExcDevPercent"] == 1.5
+
+
+@respx.mock
+def test_update_point_no_fields_is_noop() -> None:
+    """update with no fields should not make an HTTP request."""
+    route = respx.patch(f"{BASE}/points/P0ABC123").mock(
+        return_value=httpx.Response(204)
+    )
+    with httpx.Client(base_url=BASE) as client:
+        pts = _SyncPoints(client)
+        pts.update("P0ABC123")
+
+    assert not route.called
+
+
+@respx.mock
+def test_update_point_not_found() -> None:
+    """update raises NotFoundError on 404."""
+    respx.patch(f"{BASE}/points/NOPE").mock(
+        return_value=httpx.Response(404, json={"Message": "Point not found"})
+    )
+    with httpx.Client(base_url=BASE) as client:
+        pts = _SyncPoints(client)
+        with pytest.raises(NotFoundError):
+            pts.update("NOPE", descriptor="x")
+
+
+# ===========================================================================
+# Async — update
+# ===========================================================================
+
+
+@respx.mock
+async def test_async_update_point() -> None:
+    """Async update sends PATCH with the provided fields."""
+    route = respx.patch(f"{BASE}/points/P0ABC123").mock(
+        return_value=httpx.Response(204)
+    )
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        pts = _AsyncPoints(client)
+        await pts.update("P0ABC123", descriptor="Async desc")
+
+    assert route.called
+    body = json.loads(route.calls.last.request.content)
+    assert body == {"Descriptor": "Async desc"}
+
+
+@respx.mock
+async def test_async_update_point_no_fields_is_noop() -> None:
+    """Async update with no fields is a no-op."""
+    route = respx.patch(f"{BASE}/points/P0ABC123").mock(
+        return_value=httpx.Response(204)
+    )
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        pts = _AsyncPoints(client)
+        await pts.update("P0ABC123")
+
+    assert not route.called

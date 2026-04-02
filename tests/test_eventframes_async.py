@@ -87,3 +87,19 @@ class TestEventFramesAsync:
         )
         await client.eventframes.delete(EF_WEB_ID)
         assert route.called
+
+    async def test_update_close(self, async_client):
+        client, mock = async_client
+        route = mock.patch(f"/eventframes/{EF_WEB_ID}").mock(
+            return_value=httpx.Response(204)
+        )
+        await client.eventframes.update(EF_WEB_ID, end_time="*")
+        assert route.called
+        import json
+        body = json.loads(route.calls[0].request.content)
+        assert body == {"EndTime": "*"}
+
+    async def test_update_no_fields_is_noop(self, async_client):
+        """update() with no fields should return without HTTP request."""
+        client, _mock = async_client
+        await client.eventframes.update(EF_WEB_ID)

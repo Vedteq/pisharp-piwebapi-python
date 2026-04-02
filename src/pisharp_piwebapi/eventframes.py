@@ -123,6 +123,55 @@ class EventFramesMixin:
         items = data.get("Items", []) if isinstance(data, dict) else data
         return [EventFrame.model_validate(item) for item in items]
 
+    def update(
+        self,
+        web_id: str,
+        *,
+        name: str | None = None,
+        description: str | None = None,
+        end_time: str | None = None,
+        severity: str | None = None,
+    ) -> None:
+        """Update an Event Frame.
+
+        Calls ``PATCH /eventframes/{webId}``.  Only the fields that are
+        provided (not ``None``) will be sent in the request body.
+
+        To **close** an open event frame, pass ``end_time``::
+
+            client.eventframes.update(web_id, end_time="*")
+
+        Args:
+            web_id: WebID of the Event Frame to update.
+            name: New name for the Event Frame.
+            description: New description.
+            end_time: End time as a PI time string.  Setting this on an
+                open event frame effectively "closes" it.
+            severity: New severity level.
+
+        Raises:
+            NotFoundError: If no Event Frame with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        validate_web_id(web_id)
+        body: dict[str, Any] = {}
+        if name is not None:
+            body["Name"] = name
+        if description is not None:
+            body["Description"] = description
+        if end_time is not None:
+            body["EndTime"] = end_time
+        if severity is not None:
+            body["Severity"] = severity
+        if not body:
+            return
+        resp = self._client.patch(
+            f"/eventframes/{quote(web_id, safe='')}",
+            json=body,
+        )
+        raise_for_response(resp)
+
     def acknowledge(self, web_id: str) -> None:
         """Acknowledge an Event Frame.
 
@@ -316,6 +365,55 @@ class AsyncEventFramesMixin:
         data = resp.json()
         items = data.get("Items", []) if isinstance(data, dict) else data
         return [EventFrame.model_validate(item) for item in items]
+
+    async def update(
+        self,
+        web_id: str,
+        *,
+        name: str | None = None,
+        description: str | None = None,
+        end_time: str | None = None,
+        severity: str | None = None,
+    ) -> None:
+        """Update an Event Frame.
+
+        Calls ``PATCH /eventframes/{webId}``.  Only the fields that are
+        provided (not ``None``) will be sent in the request body.
+
+        To **close** an open event frame, pass ``end_time``::
+
+            await client.eventframes.update(web_id, end_time="*")
+
+        Args:
+            web_id: WebID of the Event Frame to update.
+            name: New name for the Event Frame.
+            description: New description.
+            end_time: End time as a PI time string.  Setting this on an
+                open event frame effectively "closes" it.
+            severity: New severity level.
+
+        Raises:
+            NotFoundError: If no Event Frame with the given WebID exists.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        validate_web_id(web_id)
+        body: dict[str, Any] = {}
+        if name is not None:
+            body["Name"] = name
+        if description is not None:
+            body["Description"] = description
+        if end_time is not None:
+            body["EndTime"] = end_time
+        if severity is not None:
+            body["Severity"] = severity
+        if not body:
+            return
+        resp = await self._client.patch(
+            f"/eventframes/{quote(web_id, safe='')}",
+            json=body,
+        )
+        await raise_for_response_async(resp)
 
     async def acknowledge(self, web_id: str) -> None:
         """Acknowledge an Event Frame.
