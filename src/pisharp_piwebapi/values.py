@@ -605,6 +605,7 @@ class AsyncStreamsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = await self._client.get(
             f"/streams/{quote(web_id, safe='')}/interpolated",
             params={
@@ -649,6 +650,7 @@ class AsyncStreamsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = await self._client.get(
             f"/streams/{quote(web_id, safe='')}/summary",
             params={
@@ -680,6 +682,7 @@ class AsyncStreamsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = await self._client.get(
             f"/streams/{quote(web_id, safe='')}/end"
         )
@@ -717,6 +720,7 @@ class AsyncStreamsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = await self._client.get(
             f"/streams/{quote(web_id, safe='')}/plot",
             params={
@@ -755,6 +759,7 @@ class AsyncStreamsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = await self._client.get(
             f"/streams/{quote(web_id, safe='')}/recordedattime",
             params={"time": time, "retrievalMode": retrieval_mode},
@@ -879,6 +884,7 @@ class AsyncStreamsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = await self._client.post(
             f"/streams/{quote(web_id, safe='')}/recorded",
             json=values,
@@ -906,6 +912,7 @@ class AsyncStreamsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = await self._client.post(
             f"/streams/{quote(web_id, safe='')}/updates",
         )
@@ -932,6 +939,7 @@ class AsyncStreamsMixin:
         Raises:
             PIWebAPIError: If the marker is invalid or expired.
         """
+        validate_web_id(marker, "marker")
         resp = await self._client.get(
             f"/streams/updates/{quote(marker, safe='')}",
         )

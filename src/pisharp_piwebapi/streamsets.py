@@ -92,6 +92,8 @@ class StreamSetsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        for wid in web_ids:
+            validate_web_id(wid, "web_ids entry")
         params: list[_Param] = [("webId", wid) for wid in web_ids]
         resp = self._client.get("/streamsets/value", params=params)
         raise_for_response(resp)
@@ -132,6 +134,8 @@ class StreamSetsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        for wid in web_ids:
+            validate_web_id(wid, "web_ids entry")
         params: list[_Param] = [("webId", wid) for wid in web_ids]
         params += [
             ("startTime", start_time),
@@ -171,6 +175,8 @@ class StreamSetsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        for wid in web_ids:
+            validate_web_id(wid, "web_ids entry")
         params: list[_Param] = [("webId", wid) for wid in web_ids]
         params += [
             ("startTime", start_time),
@@ -341,6 +347,8 @@ class AsyncStreamSetsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        for wid in web_ids:
+            validate_web_id(wid, "web_ids entry")
         params: list[_Param] = [("webId", wid) for wid in web_ids]
         resp = await self._client.get("/streamsets/value", params=params)
         await raise_for_response_async(resp)
@@ -376,6 +384,8 @@ class AsyncStreamSetsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        for wid in web_ids:
+            validate_web_id(wid, "web_ids entry")
         params: list[_Param] = [("webId", wid) for wid in web_ids]
         params += [
             ("startTime", start_time),
@@ -413,6 +423,8 @@ class AsyncStreamSetsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        for wid in web_ids:
+            validate_web_id(wid, "web_ids entry")
         params: list[_Param] = [("webId", wid) for wid in web_ids]
         params += [
             ("startTime", start_time),
