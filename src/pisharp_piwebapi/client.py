@@ -36,6 +36,7 @@ from pisharp_piwebapi.servers import (
     DataServersMixin,
 )
 from pisharp_piwebapi.streamsets import AsyncStreamSetsMixin, StreamSetsMixin
+from pisharp_piwebapi.system import AsyncSystemMixin, SystemMixin
 from pisharp_piwebapi.values import AsyncStreamsMixin, StreamsMixin
 
 _VALID_AUTH_METHODS = {"basic", "kerberos", "ntlm"}
@@ -144,6 +145,13 @@ class _DatabasesAccessor(DatabasesMixin):
         self._client = client
 
 
+class _SystemAccessor(SystemMixin):
+    """Namespace for system operations on the sync client."""
+
+    def __init__(self, client: httpx.Client) -> None:
+        self._client = client
+
+
 class _AsyncPointsAccessor(AsyncPointsMixin):
     """Namespace for point operations on the async client."""
 
@@ -223,6 +231,13 @@ class _AsyncDataServersAccessor(AsyncDataServersMixin):
 
 class _AsyncDatabasesAccessor(AsyncDatabasesMixin):
     """Namespace for database operations on the async client."""
+
+    def __init__(self, client: httpx.AsyncClient) -> None:
+        self._client = client
+
+
+class _AsyncSystemAccessor(AsyncSystemMixin):
+    """Namespace for system operations on the async client."""
 
     def __init__(self, client: httpx.AsyncClient) -> None:
         self._client = client
@@ -339,6 +354,7 @@ class PIWebAPIClient(BatchMixin, PaginationMixin):
         self.assetservers = _AssetServersAccessor(self._client)
         self.dataservers = _DataServersAccessor(self._client)
         self.databases = _DatabasesAccessor(self._client)
+        self.system = _SystemAccessor(self._client)
 
     def home(self) -> PISystemInfo:
         """Return system information from the PI Web API landing page.
@@ -478,6 +494,7 @@ class AsyncPIWebAPIClient(AsyncBatchMixin, AsyncPaginationMixin):
         self.assetservers = _AsyncAssetServersAccessor(self._client)
         self.dataservers = _AsyncDataServersAccessor(self._client)
         self.databases = _AsyncDatabasesAccessor(self._client)
+        self.system = _AsyncSystemAccessor(self._client)
 
     async def home(self) -> PISystemInfo:
         """Return system information from the PI Web API landing page.

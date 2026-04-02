@@ -24,6 +24,52 @@ class PISystemInfo(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+class PISystemStatus(BaseModel):
+    """System status from ``GET /system/status``."""
+
+    up_time_in_seconds: float = Field(alias="UpTimeInSeconds", default=0.0)
+    state: str = Field(alias="State", default="")
+    cache_instances: int = Field(alias="CacheInstances", default=0)
+
+    model_config = {"populate_by_name": True}
+
+
+class PIUserInfo(BaseModel):
+    """Authenticated user information from ``GET /system/userinfo``."""
+
+    identity_type: str = Field(alias="IdentityType", default="")
+    name: str = Field(alias="Name", default="")
+    is_authenticated: bool = Field(alias="IsAuthenticated", default=False)
+    impersonation_level: str = Field(alias="ImpersonationLevel", default="")
+
+    model_config = {"populate_by_name": True}
+
+
+class PIVersions(BaseModel):
+    """Version information from ``GET /system/versions``.
+
+    The response is a flat JSON object mapping component names (e.g.
+    ``"PIWebAPI"``, ``"PIDataArchive"``) to version strings.  Since the
+    set of keys varies by server configuration, extra fields are
+    allowed and collected into ``versions``.
+    """
+
+    versions: dict[str, str] = Field(default_factory=dict)
+
+    model_config = {"populate_by_name": True, "extra": "allow"}
+
+    @classmethod
+    def model_validate(
+        cls,
+        obj: Any,
+        **kwargs: Any,
+    ) -> PIVersions:
+        """Build from the flat dict returned by PI Web API."""
+        if isinstance(obj, dict) and "versions" not in obj:
+            return cls(versions=obj)
+        return super().model_validate(obj, **kwargs)
+
+
 class PIPoint(BaseModel):
     """Represents a PI Point (tag)."""
 
