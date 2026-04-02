@@ -6,7 +6,11 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 from urllib.parse import quote
 
-from pisharp_piwebapi.exceptions import raise_for_response, raise_for_response_async
+from pisharp_piwebapi.exceptions import (
+    raise_for_response,
+    raise_for_response_async,
+    validate_web_id,
+)
 from pisharp_piwebapi.models import StreamSummary, StreamUpdate, StreamValue, StreamValues
 
 if TYPE_CHECKING:
@@ -32,6 +36,7 @@ class StreamsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = self._client.get(f"/streams/{quote(web_id, safe='')}/value")
         raise_for_response(resp)
         return StreamValue.model_validate(resp.json())
@@ -75,6 +80,7 @@ class StreamsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         params: dict[str, str | int] = {
             "startTime": start_time,
             "endTime": end_time,
@@ -118,6 +124,7 @@ class StreamsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = self._client.get(
             f"/streams/{quote(web_id, safe='')}/interpolated",
             params={
@@ -169,6 +176,7 @@ class StreamsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = self._client.get(
             f"/streams/{quote(web_id, safe='')}/summary",
             params={
@@ -202,6 +210,7 @@ class StreamsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = self._client.get(f"/streams/{quote(web_id, safe='')}/end")
         raise_for_response(resp)
         return StreamValue.model_validate(resp.json())
@@ -237,6 +246,7 @@ class StreamsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = self._client.get(
             f"/streams/{quote(web_id, safe='')}/plot",
             params={
@@ -275,6 +285,7 @@ class StreamsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = self._client.get(
             f"/streams/{quote(web_id, safe='')}/recordedattime",
             params={"time": time, "retrievalMode": retrieval_mode},
@@ -310,6 +321,7 @@ class StreamsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         params: list[tuple[str, str | int | float | bool | None]] = [
             ("retrievalMode", retrieval_mode),
         ]
@@ -346,6 +358,7 @@ class StreamsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         params: list[tuple[str, str | int | float | bool | None]] = [
             ("time", t) for t in times
         ]
@@ -376,6 +389,7 @@ class StreamsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         body: dict[str, Any] = {"Value": value}
         if timestamp is not None:
             body["Timestamp"] = (
@@ -410,6 +424,7 @@ class StreamsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = self._client.post(
             f"/streams/{quote(web_id, safe='')}/recorded",
             json=values,
@@ -442,6 +457,7 @@ class StreamsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = self._client.post(
             f"/streams/{quote(web_id, safe='')}/updates",
         )
@@ -481,6 +497,7 @@ class StreamsMixin:
         Raises:
             PIWebAPIError: If the marker is invalid or expired.
         """
+        validate_web_id(marker, "marker")
         resp = self._client.get(
             f"/streams/updates/{quote(marker, safe='')}",
         )
@@ -507,6 +524,7 @@ class AsyncStreamsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = await self._client.get(f"/streams/{quote(web_id, safe='')}/value")
         await raise_for_response_async(resp)
         return StreamValue.model_validate(resp.json())
@@ -546,6 +564,7 @@ class AsyncStreamsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         params: dict[str, str | int] = {
             "startTime": start_time,
             "endTime": end_time,
@@ -768,6 +787,7 @@ class AsyncStreamsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         params: list[tuple[str, str | int | float | bool | None]] = [
             ("retrievalMode", retrieval_mode),
         ]
@@ -802,6 +822,7 @@ class AsyncStreamsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         params: list[tuple[str, str | int | float | bool | None]] = [
             ("time", t) for t in times
         ]
@@ -830,6 +851,7 @@ class AsyncStreamsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         body: dict[str, Any] = {"Value": value}
         if timestamp is not None:
             body["Timestamp"] = (

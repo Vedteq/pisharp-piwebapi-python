@@ -5,7 +5,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 from urllib.parse import quote
 
-from pisharp_piwebapi.exceptions import raise_for_response, raise_for_response_async
+from pisharp_piwebapi.exceptions import (
+    raise_for_response,
+    raise_for_response_async,
+    validate_web_id,
+)
 from pisharp_piwebapi.models import EnumerationSet, EnumerationValue
 
 if TYPE_CHECKING:
@@ -33,6 +37,7 @@ class EnumerationSetsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = self._client.get(
             f"/enumerationsets/{quote(web_id, safe='')}"
         )
@@ -81,6 +86,7 @@ class EnumerationSetsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = self._client.get(
             f"/enumerationsets/{quote(web_id, safe='')}/enumerationvalues"
         )
@@ -108,6 +114,7 @@ class EnumerationSetsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(data_server_web_id, "data_server_web_id")
         resp = self._client.get(
             f"/dataservers/{quote(data_server_web_id, safe='')}/enumerationsets"
         )
@@ -139,6 +146,7 @@ class EnumerationSetsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         body: dict[str, Any] = {"Name": name, "Value": value}
         if description:
             body["Description"] = description
@@ -170,6 +178,7 @@ class AsyncEnumerationSetsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = await self._client.get(
             f"/enumerationsets/{quote(web_id, safe='')}"
         )
@@ -217,6 +226,7 @@ class AsyncEnumerationSetsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = await self._client.get(
             f"/enumerationsets/{quote(web_id, safe='')}/enumerationvalues"
         )
@@ -246,6 +256,7 @@ class AsyncEnumerationSetsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(data_server_web_id, "data_server_web_id")
         resp = await self._client.get(
             f"/dataservers/{quote(data_server_web_id, safe='')}/enumerationsets"
         )
@@ -279,6 +290,7 @@ class AsyncEnumerationSetsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         body: dict[str, Any] = {"Name": name, "Value": value}
         if description:
             body["Description"] = description

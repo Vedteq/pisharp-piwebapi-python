@@ -5,7 +5,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from urllib.parse import quote
 
-from pisharp_piwebapi.exceptions import raise_for_response, raise_for_response_async
+from pisharp_piwebapi.exceptions import (
+    raise_for_response,
+    raise_for_response_async,
+    validate_web_id,
+)
 from pisharp_piwebapi.models import PIAssetServer, PIDatabase, PIDataServer, PIElement
 
 if TYPE_CHECKING:
@@ -33,12 +37,14 @@ class AssetServersMixin:
 
     def get_by_web_id(self, web_id: str) -> PIAssetServer:
         """Look up an AF Server by WebID."""
+        validate_web_id(web_id)
         resp = self._client.get(f"/assetservers/{quote(web_id, safe='')}")
         raise_for_response(resp)
         return PIAssetServer.model_validate(resp.json())
 
     def get_databases(self, web_id: str) -> list[PIDatabase]:
         """List AF Databases on an AF Server."""
+        validate_web_id(web_id)
         resp = self._client.get(f"/assetservers/{quote(web_id, safe='')}/assetdatabases")
         raise_for_response(resp)
         data = resp.json()
@@ -67,6 +73,7 @@ class DataServersMixin:
 
     def get_by_web_id(self, web_id: str) -> PIDataServer:
         """Look up a Data Server by WebID."""
+        validate_web_id(web_id)
         resp = self._client.get(f"/dataservers/{quote(web_id, safe='')}")
         raise_for_response(resp)
         return PIDataServer.model_validate(resp.json())
@@ -85,12 +92,14 @@ class DatabasesMixin:
 
     def get_by_web_id(self, web_id: str) -> PIDatabase:
         """Look up an AF Database by WebID."""
+        validate_web_id(web_id)
         resp = self._client.get(f"/assetdatabases/{quote(web_id, safe='')}")
         raise_for_response(resp)
         return PIDatabase.model_validate(resp.json())
 
     def get_elements(self, web_id: str, max_count: int = 1000) -> list[PIElement]:
         """Get top-level elements in an AF Database."""
+        validate_web_id(web_id)
         resp = self._client.get(
             f"/assetdatabases/{quote(web_id, safe='')}/elements",
             params={"maxCount": max_count},
@@ -122,12 +131,14 @@ class AsyncAssetServersMixin:
 
     async def get_by_web_id(self, web_id: str) -> PIAssetServer:
         """Look up an AF Server by WebID (async)."""
+        validate_web_id(web_id)
         resp = await self._client.get(f"/assetservers/{quote(web_id, safe='')}")
         await raise_for_response_async(resp)
         return PIAssetServer.model_validate(resp.json())
 
     async def get_databases(self, web_id: str) -> list[PIDatabase]:
         """List AF Databases on an AF Server (async)."""
+        validate_web_id(web_id)
         resp = await self._client.get(
             f"/assetservers/{quote(web_id, safe='')}/assetdatabases"
         )
@@ -158,6 +169,7 @@ class AsyncDataServersMixin:
 
     async def get_by_web_id(self, web_id: str) -> PIDataServer:
         """Look up a Data Server by WebID (async)."""
+        validate_web_id(web_id)
         resp = await self._client.get(f"/dataservers/{quote(web_id, safe='')}")
         await raise_for_response_async(resp)
         return PIDataServer.model_validate(resp.json())
@@ -176,12 +188,14 @@ class AsyncDatabasesMixin:
 
     async def get_by_web_id(self, web_id: str) -> PIDatabase:
         """Look up an AF Database by WebID (async)."""
+        validate_web_id(web_id)
         resp = await self._client.get(f"/assetdatabases/{quote(web_id, safe='')}")
         await raise_for_response_async(resp)
         return PIDatabase.model_validate(resp.json())
 
     async def get_elements(self, web_id: str, max_count: int = 1000) -> list[PIElement]:
         """Get top-level elements in an AF Database (async)."""
+        validate_web_id(web_id)
         resp = await self._client.get(
             f"/assetdatabases/{quote(web_id, safe='')}/elements",
             params={"maxCount": max_count},

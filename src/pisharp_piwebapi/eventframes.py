@@ -5,7 +5,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 from urllib.parse import quote
 
-from pisharp_piwebapi.exceptions import raise_for_response, raise_for_response_async
+from pisharp_piwebapi.exceptions import (
+    raise_for_response,
+    raise_for_response_async,
+    validate_web_id,
+)
 from pisharp_piwebapi.models import EventFrame
 
 if TYPE_CHECKING:
@@ -31,6 +35,7 @@ class EventFramesMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = self._client.get(f"/eventframes/{quote(web_id, safe='')}")
         raise_for_response(resp)
         return EventFrame.model_validate(resp.json())
@@ -64,6 +69,7 @@ class EventFramesMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(database_web_id, "database_web_id")
         params: dict[str, Any] = {
             "nameFilter": name_filter,
             "startTime": start_time,
@@ -103,6 +109,7 @@ class EventFramesMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(element_web_id, "element_web_id")
         resp = self._client.get(
             f"/elements/{quote(element_web_id, safe='')}/eventframes",
             params={
@@ -127,6 +134,7 @@ class EventFramesMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = self._client.patch(
             f"/eventframes/{quote(web_id, safe='')}",
             json={"IsAcknowledged": True},
@@ -166,6 +174,7 @@ class EventFramesMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(database_web_id, "database_web_id")
         body: dict[str, Any] = {
             "Name": name,
             "StartTime": start_time,
@@ -196,6 +205,7 @@ class EventFramesMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = self._client.delete(f"/eventframes/{quote(web_id, safe='')}")
         raise_for_response(resp)
 
@@ -219,6 +229,7 @@ class AsyncEventFramesMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = await self._client.get(f"/eventframes/{quote(web_id, safe='')}")
         await raise_for_response_async(resp)
         return EventFrame.model_validate(resp.json())
@@ -252,6 +263,7 @@ class AsyncEventFramesMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(database_web_id, "database_web_id")
         params: dict[str, Any] = {
             "nameFilter": name_filter,
             "startTime": start_time,
@@ -291,6 +303,7 @@ class AsyncEventFramesMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(element_web_id, "element_web_id")
         resp = await self._client.get(
             f"/elements/{quote(element_web_id, safe='')}/eventframes",
             params={
@@ -315,6 +328,7 @@ class AsyncEventFramesMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = await self._client.patch(
             f"/eventframes/{quote(web_id, safe='')}",
             json={"IsAcknowledged": True},
@@ -354,6 +368,7 @@ class AsyncEventFramesMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(database_web_id, "database_web_id")
         body: dict[str, Any] = {
             "Name": name,
             "StartTime": start_time,
@@ -384,5 +399,6 @@ class AsyncEventFramesMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = await self._client.delete(f"/eventframes/{quote(web_id, safe='')}")
         await raise_for_response_async(resp)

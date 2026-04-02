@@ -12,7 +12,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from urllib.parse import quote
 
-from pisharp_piwebapi.exceptions import raise_for_response, raise_for_response_async
+from pisharp_piwebapi.exceptions import (
+    raise_for_response,
+    raise_for_response_async,
+    validate_web_id,
+)
 from pisharp_piwebapi.models import StreamSetItem, StreamValue
 
 if TYPE_CHECKING:
@@ -213,6 +217,7 @@ class StreamSetsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(element_web_id, "element_web_id")
         params: dict[str, str | int] = {
             "startTime": start_time,
             "endTime": end_time,
@@ -254,6 +259,7 @@ class StreamSetsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(element_web_id, "element_web_id")
         resp = self._client.get(
             f"/streamsets/{quote(element_web_id, safe='')}/value",
             params={"nameFilter": name_filter},
@@ -297,6 +303,7 @@ class StreamSetsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(element_web_id, "element_web_id")
         resp = self._client.get(
             f"/streamsets/{quote(element_web_id, safe='')}/interpolated",
             params={
@@ -450,6 +457,7 @@ class AsyncStreamSetsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(element_web_id, "element_web_id")
         params: dict[str, str | int] = {
             "startTime": start_time,
             "endTime": end_time,
@@ -489,6 +497,7 @@ class AsyncStreamSetsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(element_web_id, "element_web_id")
         resp = await self._client.get(
             f"/streamsets/{quote(element_web_id, safe='')}/value",
             params={"nameFilter": name_filter},
@@ -525,6 +534,7 @@ class AsyncStreamSetsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(element_web_id, "element_web_id")
         resp = await self._client.get(
             f"/streamsets/{quote(element_web_id, safe='')}/interpolated",
             params={

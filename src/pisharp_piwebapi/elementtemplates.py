@@ -5,7 +5,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 from urllib.parse import quote
 
-from pisharp_piwebapi.exceptions import raise_for_response, raise_for_response_async
+from pisharp_piwebapi.exceptions import (
+    raise_for_response,
+    raise_for_response_async,
+    validate_web_id,
+)
 from pisharp_piwebapi.models import PIElementTemplate
 
 if TYPE_CHECKING:
@@ -33,6 +37,7 @@ class ElementTemplatesMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = self._client.get(
             f"/elementtemplates/{quote(web_id, safe='')}"
         )
@@ -89,6 +94,7 @@ class ElementTemplatesMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(database_web_id, "database_web_id")
         resp = self._client.get(
             f"/assetdatabases/{quote(database_web_id, safe='')}"
             "/elementtemplates",
@@ -126,6 +132,7 @@ class ElementTemplatesMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(template_web_id, "template_web_id")
         resp = self._client.get(
             f"/elementtemplates/{quote(template_web_id, safe='')}"
             "/attributetemplates",
@@ -158,6 +165,7 @@ class AsyncElementTemplatesMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = await self._client.get(
             f"/elementtemplates/{quote(web_id, safe='')}"
         )
@@ -211,6 +219,7 @@ class AsyncElementTemplatesMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(database_web_id, "database_web_id")
         resp = await self._client.get(
             f"/assetdatabases/{quote(database_web_id, safe='')}"
             "/elementtemplates",
@@ -246,6 +255,7 @@ class AsyncElementTemplatesMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(template_web_id, "template_web_id")
         resp = await self._client.get(
             f"/elementtemplates/{quote(template_web_id, safe='')}"
             "/attributetemplates",

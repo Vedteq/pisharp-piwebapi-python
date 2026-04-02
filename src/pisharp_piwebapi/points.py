@@ -5,7 +5,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 from urllib.parse import quote
 
-from pisharp_piwebapi.exceptions import raise_for_response, raise_for_response_async
+from pisharp_piwebapi.exceptions import (
+    raise_for_response,
+    raise_for_response_async,
+    validate_web_id,
+)
 from pisharp_piwebapi.models import PIDataServer, PIPoint
 
 if TYPE_CHECKING:
@@ -49,6 +53,7 @@ class PointsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = self._client.get(f"/points/{quote(web_id, safe='')}")
         raise_for_response(resp)
         return PIPoint.model_validate(resp.json())
@@ -81,6 +86,7 @@ class PointsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(data_server_web_id, "data_server_web_id")
         resp = self._client.get(
             f"/dataservers/{quote(data_server_web_id, safe='')}/points",
             params={"nameFilter": name_filter, "maxCount": max_count},
@@ -120,6 +126,7 @@ class PointsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = self._client.get(f"/dataservers/{quote(web_id, safe='')}")
         raise_for_response(resp)
         return PIDataServer.model_validate(resp.json())
@@ -162,6 +169,7 @@ class PointsMixin:
             PIWebAPIError: If the server returns any other non-2xx status
                 (e.g. 409 if a point with that name already exists).
         """
+        validate_web_id(data_server_web_id, "data_server_web_id")
         body: dict[str, Any] = dict(extra_fields) if extra_fields else {}
         body.update({
             "Name": name,
@@ -192,6 +200,7 @@ class PointsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = self._client.delete(f"/points/{quote(web_id, safe='')}")
         raise_for_response(resp)
 
@@ -233,6 +242,7 @@ class AsyncPointsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = await self._client.get(f"/points/{quote(web_id, safe='')}")
         await raise_for_response_async(resp)
         return PIPoint.model_validate(resp.json())
@@ -263,6 +273,7 @@ class AsyncPointsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(data_server_web_id, "data_server_web_id")
         resp = await self._client.get(
             f"/dataservers/{quote(data_server_web_id, safe='')}/points",
             params={"nameFilter": name_filter, "maxCount": max_count},
@@ -302,6 +313,7 @@ class AsyncPointsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = await self._client.get(f"/dataservers/{quote(web_id, safe='')}")
         await raise_for_response_async(resp)
         return PIDataServer.model_validate(resp.json())
@@ -343,6 +355,7 @@ class AsyncPointsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: If the server returns any other non-2xx status.
         """
+        validate_web_id(data_server_web_id, "data_server_web_id")
         body: dict[str, Any] = dict(extra_fields) if extra_fields else {}
         body.update({
             "Name": name,
@@ -372,5 +385,6 @@ class AsyncPointsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = await self._client.delete(f"/points/{quote(web_id, safe='')}")
         await raise_for_response_async(resp)

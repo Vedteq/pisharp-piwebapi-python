@@ -8,6 +8,28 @@ if TYPE_CHECKING:
     import httpx
 
 
+def validate_web_id(value: str, param_name: str = "web_id") -> None:
+    """Raise ``ValueError`` if *value* is empty or whitespace-only.
+
+    Called at the top of every resource method that embeds a WebID (or
+    similar identifier like a marker) into a URL path segment.  An empty
+    string would produce a malformed URL like ``/streams//value`` and
+    return a confusing 404 from the server.
+
+    Args:
+        value: The WebID or identifier string to validate.
+        param_name: Name of the parameter (used in the error message).
+
+    Raises:
+        ValueError: If *value* is empty or whitespace-only.
+    """
+    if not value or not value.strip():
+        raise ValueError(
+            f"{param_name} must not be empty. "
+            "Pass a valid PI Web API WebID string."
+        )
+
+
 class PIWebAPIError(Exception):
     """Base exception for all PI Web API errors."""
 
