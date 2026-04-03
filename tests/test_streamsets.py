@@ -737,3 +737,348 @@ async def test_async_get_values_by_element_404_raises() -> None:
             await ss.get_values_by_element(ELEM_WEB_ID)
 
     assert exc_info.value.status_code == 404
+
+
+# ===========================================================================
+# Sync — get_plot_ad_hoc
+# ===========================================================================
+
+
+@respx.mock
+def test_get_plot_ad_hoc_happy_path() -> None:
+    """get_plot_ad_hoc returns a StreamSetItem per WebID."""
+    respx.get(f"{BASE}/streamsets/plot").mock(
+        return_value=httpx.Response(200, json=RECORDED_PAYLOAD)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        ss = _SyncStreamSets(client)
+        result = ss.get_plot_ad_hoc([WEB_ID_A, WEB_ID_B])
+
+    assert len(result) == 2
+    assert all(isinstance(item, StreamSetItem) for item in result)
+
+
+@respx.mock
+def test_get_plot_ad_hoc_passes_params() -> None:
+    """get_plot_ad_hoc forwards startTime, endTime, and intervals."""
+    route = respx.get(f"{BASE}/streamsets/plot").mock(
+        return_value=httpx.Response(200, json=RECORDED_PAYLOAD)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        ss = _SyncStreamSets(client)
+        ss.get_plot_ad_hoc(
+            [WEB_ID_A], start_time="-4h", end_time="*", intervals=48
+        )
+
+    raw_query = route.calls.last.request.url.query.decode()
+    assert "startTime=-4h" in raw_query
+    assert "intervals=48" in raw_query
+
+
+# ===========================================================================
+# Sync — get_end_ad_hoc
+# ===========================================================================
+
+
+@respx.mock
+def test_get_end_ad_hoc_happy_path() -> None:
+    """get_end_ad_hoc returns a StreamSetItem per WebID."""
+    respx.get(f"{BASE}/streamsets/end").mock(
+        return_value=httpx.Response(200, json=RECORDED_PAYLOAD)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        ss = _SyncStreamSets(client)
+        result = ss.get_end_ad_hoc([WEB_ID_A, WEB_ID_B])
+
+    assert len(result) == 2
+    assert all(isinstance(item, StreamSetItem) for item in result)
+
+
+@respx.mock
+def test_get_end_ad_hoc_401_raises() -> None:
+    """get_end_ad_hoc raises AuthenticationError on 401."""
+    respx.get(f"{BASE}/streamsets/end").mock(
+        return_value=httpx.Response(401, json={"Message": "Unauthorized"})
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        ss = _SyncStreamSets(client)
+        with pytest.raises(AuthenticationError):
+            ss.get_end_ad_hoc([WEB_ID_A])
+
+
+# ===========================================================================
+# Sync — get_summary_ad_hoc
+# ===========================================================================
+
+
+@respx.mock
+def test_get_summary_ad_hoc_happy_path() -> None:
+    """get_summary_ad_hoc returns a StreamSetItem per WebID."""
+    respx.get(f"{BASE}/streamsets/summary").mock(
+        return_value=httpx.Response(200, json=RECORDED_PAYLOAD)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        ss = _SyncStreamSets(client)
+        result = ss.get_summary_ad_hoc([WEB_ID_A, WEB_ID_B])
+
+    assert len(result) == 2
+
+
+@respx.mock
+def test_get_summary_ad_hoc_passes_params() -> None:
+    """get_summary_ad_hoc forwards summaryType and calculationBasis."""
+    route = respx.get(f"{BASE}/streamsets/summary").mock(
+        return_value=httpx.Response(200, json=RECORDED_PAYLOAD)
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        ss = _SyncStreamSets(client)
+        ss.get_summary_ad_hoc(
+            [WEB_ID_A],
+            summary_type="Average",
+            calculation_basis="EventWeighted",
+        )
+
+    raw_query = route.calls.last.request.url.query.decode()
+    assert "summaryType=Average" in raw_query
+    assert "calculationBasis=EventWeighted" in raw_query
+
+
+# ===========================================================================
+# Sync — update_values_ad_hoc (bulk write)
+# ===========================================================================
+
+
+@respx.mock
+def test_update_values_ad_hoc_happy_path() -> None:
+    """update_values_ad_hoc POSTs to /streamsets/value."""
+    route = respx.post(f"{BASE}/streamsets/value").mock(
+        return_value=httpx.Response(202, json={})
+    )
+
+    items = [
+        {"WebId": WEB_ID_A, "Value": {"Value": 42.0}},
+        {"WebId": WEB_ID_B, "Value": {"Value": 99.9}},
+    ]
+
+    with httpx.Client(base_url=BASE) as client:
+        ss = _SyncStreamSets(client)
+        ss.update_values_ad_hoc(items)
+
+    assert route.called
+
+
+@respx.mock
+def test_update_values_ad_hoc_sends_correct_body() -> None:
+    """update_values_ad_hoc sends the items list as JSON body."""
+    import json
+
+    route = respx.post(f"{BASE}/streamsets/value").mock(
+        return_value=httpx.Response(202, json={})
+    )
+
+    items = [{"WebId": WEB_ID_A, "Value": {"Value": 1.0}}]
+
+    with httpx.Client(base_url=BASE) as client:
+        ss = _SyncStreamSets(client)
+        ss.update_values_ad_hoc(items)
+
+    body = json.loads(route.calls.last.request.content)
+    assert len(body) == 1
+    assert body[0]["WebId"] == WEB_ID_A
+
+
+@respx.mock
+def test_update_values_ad_hoc_401_raises() -> None:
+    """update_values_ad_hoc raises AuthenticationError on 401."""
+    respx.post(f"{BASE}/streamsets/value").mock(
+        return_value=httpx.Response(401, json={"Message": "Unauthorized"})
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        ss = _SyncStreamSets(client)
+        with pytest.raises(AuthenticationError):
+            ss.update_values_ad_hoc(
+                [{"WebId": WEB_ID_A, "Value": {"Value": 1}}]
+            )
+
+
+# ===========================================================================
+# Sync — update_values_by_element (element-scoped bulk write)
+# ===========================================================================
+
+
+@respx.mock
+def test_update_values_by_element_happy_path() -> None:
+    """update_values_by_element POSTs to /streamsets/{webId}/value."""
+    route = respx.post(f"{BASE}/streamsets/{ELEM_WEB_ID}/value").mock(
+        return_value=httpx.Response(202, json={})
+    )
+
+    items = [{"WebId": WEB_ID_A, "Value": {"Value": 72.0}}]
+
+    with httpx.Client(base_url=BASE) as client:
+        ss = _SyncStreamSets(client)
+        ss.update_values_by_element(ELEM_WEB_ID, items)
+
+    assert route.called
+
+
+@respx.mock
+def test_update_values_by_element_404_raises() -> None:
+    """update_values_by_element raises NotFoundError on 404."""
+    respx.post(f"{BASE}/streamsets/{ELEM_WEB_ID}/value").mock(
+        return_value=httpx.Response(
+            404, json={"Message": "Element not found"}
+        )
+    )
+
+    with httpx.Client(base_url=BASE) as client:
+        ss = _SyncStreamSets(client)
+        with pytest.raises(NotFoundError):
+            ss.update_values_by_element(ELEM_WEB_ID, [])
+
+
+def test_update_values_by_element_empty_web_id_raises() -> None:
+    """update_values_by_element raises ValueError on empty WebID."""
+    with httpx.Client(base_url=BASE) as client:
+        ss = _SyncStreamSets(client)
+        with pytest.raises(ValueError, match="element_web_id"):
+            ss.update_values_by_element("", [])
+
+
+# ===========================================================================
+# Async — get_plot_ad_hoc
+# ===========================================================================
+
+
+@respx.mock
+async def test_async_get_plot_ad_hoc_happy_path() -> None:
+    """Async get_plot_ad_hoc returns a StreamSetItem per WebID."""
+    respx.get(f"{BASE}/streamsets/plot").mock(
+        return_value=httpx.Response(200, json=RECORDED_PAYLOAD)
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        ss = _AsyncStreamSets(client)
+        result = await ss.get_plot_ad_hoc([WEB_ID_A, WEB_ID_B])
+
+    assert len(result) == 2
+
+
+# ===========================================================================
+# Async — get_end_ad_hoc
+# ===========================================================================
+
+
+@respx.mock
+async def test_async_get_end_ad_hoc_happy_path() -> None:
+    """Async get_end_ad_hoc returns a StreamSetItem per WebID."""
+    respx.get(f"{BASE}/streamsets/end").mock(
+        return_value=httpx.Response(200, json=RECORDED_PAYLOAD)
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        ss = _AsyncStreamSets(client)
+        result = await ss.get_end_ad_hoc([WEB_ID_A, WEB_ID_B])
+
+    assert len(result) == 2
+
+
+# ===========================================================================
+# Async — get_summary_ad_hoc
+# ===========================================================================
+
+
+@respx.mock
+async def test_async_get_summary_ad_hoc_happy_path() -> None:
+    """Async get_summary_ad_hoc returns a StreamSetItem per WebID."""
+    respx.get(f"{BASE}/streamsets/summary").mock(
+        return_value=httpx.Response(200, json=RECORDED_PAYLOAD)
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        ss = _AsyncStreamSets(client)
+        result = await ss.get_summary_ad_hoc([WEB_ID_A])
+
+    assert len(result) == 2
+
+
+# ===========================================================================
+# Async — update_values_ad_hoc (bulk write)
+# ===========================================================================
+
+
+@respx.mock
+async def test_async_update_values_ad_hoc_happy_path() -> None:
+    """Async update_values_ad_hoc POSTs to /streamsets/value."""
+    route = respx.post(f"{BASE}/streamsets/value").mock(
+        return_value=httpx.Response(202, json={})
+    )
+
+    items = [
+        {"WebId": WEB_ID_A, "Value": {"Value": 42.0}},
+        {"WebId": WEB_ID_B, "Value": {"Value": 99.9}},
+    ]
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        ss = _AsyncStreamSets(client)
+        await ss.update_values_ad_hoc(items)
+
+    assert route.called
+
+
+@respx.mock
+async def test_async_update_values_ad_hoc_500_raises() -> None:
+    """Async update_values_ad_hoc raises ServerError on 500."""
+    respx.post(f"{BASE}/streamsets/value").mock(
+        return_value=httpx.Response(500, json={"Message": "Server error"})
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        ss = _AsyncStreamSets(client)
+        with pytest.raises(ServerError):
+            await ss.update_values_ad_hoc(
+                [{"WebId": WEB_ID_A, "Value": {"Value": 1}}]
+            )
+
+
+# ===========================================================================
+# Async — update_values_by_element (element-scoped bulk write)
+# ===========================================================================
+
+
+@respx.mock
+async def test_async_update_values_by_element_happy_path() -> None:
+    """Async update_values_by_element POSTs to /streamsets/{webId}/value."""
+    route = respx.post(f"{BASE}/streamsets/{ELEM_WEB_ID}/value").mock(
+        return_value=httpx.Response(202, json={})
+    )
+
+    items = [{"WebId": WEB_ID_A, "Value": {"Value": 72.0}}]
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        ss = _AsyncStreamSets(client)
+        await ss.update_values_by_element(ELEM_WEB_ID, items)
+
+    assert route.called
+
+
+@respx.mock
+async def test_async_update_values_by_element_404_raises() -> None:
+    """Async update_values_by_element raises NotFoundError on 404."""
+    respx.post(f"{BASE}/streamsets/{ELEM_WEB_ID}/value").mock(
+        return_value=httpx.Response(
+            404, json={"Message": "Element not found"}
+        )
+    )
+
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        ss = _AsyncStreamSets(client)
+        with pytest.raises(NotFoundError):
+            await ss.update_values_by_element(ELEM_WEB_ID, [])

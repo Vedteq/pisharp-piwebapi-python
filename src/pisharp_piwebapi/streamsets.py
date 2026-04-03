@@ -9,7 +9,7 @@ once.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from urllib.parse import quote
 
 from pisharp_piwebapi.exceptions import (
@@ -239,6 +239,167 @@ class StreamSetsMixin:
         raise_for_response(resp)
         return _parse_streamset_items(resp.json())
 
+    def get_plot_ad_hoc(
+        self,
+        web_ids: list[str],
+        start_time: str = "-1h",
+        end_time: str = "*",
+        intervals: int = 24,
+    ) -> list[StreamSetItem]:
+        """Read plot-optimized values for multiple streams in one call.
+
+        Calls ``GET /streamsets/plot?webId=A&webId=B&...``.
+
+        Args:
+            web_ids: List of WebIDs to read.
+            start_time: Start time as a PI time string. Defaults to ``"-1h"``.
+            end_time: End time as a PI time string. Defaults to ``"*"`` (now).
+            intervals: Number of intervals to divide the time range into.
+                Defaults to ``24``.
+
+        Returns:
+            List of :class:`StreamSetItem` objects, one per WebID.
+
+        Raises:
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        for wid in web_ids:
+            validate_web_id(wid, "web_ids entry")
+        params: list[_Param] = [("webId", wid) for wid in web_ids]
+        params += [
+            ("startTime", start_time),
+            ("endTime", end_time),
+            ("intervals", intervals),
+        ]
+        resp = self._client.get("/streamsets/plot", params=params)
+        raise_for_response(resp)
+        return _parse_streamset_items(resp.json())
+
+    def get_end_ad_hoc(
+        self,
+        web_ids: list[str],
+    ) -> list[StreamSetItem]:
+        """Read the end-of-stream (last archived) value for multiple streams.
+
+        Calls ``GET /streamsets/end?webId=A&webId=B&...``.
+
+        Args:
+            web_ids: List of WebIDs to read.
+
+        Returns:
+            List of :class:`StreamSetItem` objects, one per WebID.
+
+        Raises:
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        for wid in web_ids:
+            validate_web_id(wid, "web_ids entry")
+        params: list[_Param] = [("webId", wid) for wid in web_ids]
+        resp = self._client.get("/streamsets/end", params=params)
+        raise_for_response(resp)
+        return _parse_streamset_items(resp.json())
+
+    def get_summary_ad_hoc(
+        self,
+        web_ids: list[str],
+        start_time: str = "-1h",
+        end_time: str = "*",
+        summary_type: str = "All",
+        calculation_basis: str = "TimeWeighted",
+    ) -> list[StreamSetItem]:
+        """Read summary statistics for multiple streams in one call.
+
+        Calls ``GET /streamsets/summary?webId=A&webId=B&...``.
+
+        Args:
+            web_ids: List of WebIDs to read.
+            start_time: Start time as a PI time string. Defaults to ``"-1h"``.
+            end_time: End time as a PI time string. Defaults to ``"*"`` (now).
+            summary_type: Comma-separated list of summary types.
+                Defaults to ``"All"``.
+            calculation_basis: ``"TimeWeighted"`` (default) or
+                ``"EventWeighted"``.
+
+        Returns:
+            List of :class:`StreamSetItem` objects, one per WebID.
+
+        Raises:
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        for wid in web_ids:
+            validate_web_id(wid, "web_ids entry")
+        params: list[_Param] = [("webId", wid) for wid in web_ids]
+        params += [
+            ("startTime", start_time),
+            ("endTime", end_time),
+            ("summaryType", summary_type),
+            ("calculationBasis", calculation_basis),
+        ]
+        resp = self._client.get("/streamsets/summary", params=params)
+        raise_for_response(resp)
+        return _parse_streamset_items(resp.json())
+
+    def update_values_ad_hoc(
+        self,
+        items: list[dict[str, Any]],
+    ) -> None:
+        """Write snapshot values to multiple streams in a single request.
+
+        Calls ``POST /streamsets/value``.  Each item in the list must
+        contain a ``"WebId"`` key identifying the target stream and a
+        ``"Value"`` key with the payload to write.
+
+        Example::
+
+            client.streamsets.update_values_ad_hoc([
+                {"WebId": "P0abc", "Value": {"Value": 42.0}},
+                {"WebId": "P0def", "Value": {"Value": 99.9}},
+            ])
+
+        Args:
+            items: List of dicts, each with at least ``"WebId"`` and
+                ``"Value"`` keys.  ``"Value"`` should be a dict matching
+                the :class:`StreamValue` shape (``{"Value": ...,
+                "Timestamp": ...}``).
+
+        Raises:
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = self._client.post("/streamsets/value", json=items)
+        raise_for_response(resp)
+
+    def update_values_by_element(
+        self,
+        element_web_id: str,
+        items: list[dict[str, Any]],
+    ) -> None:
+        """Write snapshot values to all attributes of an AF element.
+
+        Calls ``POST /streamsets/{elementWebId}/value``.  Each item in
+        the list must contain a ``"WebId"`` key identifying the target
+        attribute and a ``"Value"`` key with the payload.
+
+        Args:
+            element_web_id: WebID of the AF element.
+            items: List of dicts, each with at least ``"WebId"`` and
+                ``"Value"`` keys.
+
+        Raises:
+            NotFoundError: If the element WebID is not found.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        validate_web_id(element_web_id, "element_web_id")
+        resp = self._client.post(
+            f"/streamsets/{quote(element_web_id, safe='')}/value",
+            json=items,
+        )
+        raise_for_response(resp)
+
     def get_values_by_element(
         self,
         element_web_id: str,
@@ -434,6 +595,155 @@ class AsyncStreamSetsMixin:
         resp = await self._client.get("/streamsets/interpolated", params=params)
         await raise_for_response_async(resp)
         return _parse_streamset_items(resp.json())
+
+    async def get_plot_ad_hoc(
+        self,
+        web_ids: list[str],
+        start_time: str = "-1h",
+        end_time: str = "*",
+        intervals: int = 24,
+    ) -> list[StreamSetItem]:
+        """Read plot-optimized values for multiple streams in one call.
+
+        Calls ``GET /streamsets/plot?webId=A&webId=B&...``.
+
+        Args:
+            web_ids: List of WebIDs to read.
+            start_time: Start time as a PI time string. Defaults to ``"-1h"``.
+            end_time: End time as a PI time string. Defaults to ``"*"`` (now).
+            intervals: Number of intervals. Defaults to ``24``.
+
+        Returns:
+            List of :class:`StreamSetItem` objects, one per WebID.
+
+        Raises:
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        for wid in web_ids:
+            validate_web_id(wid, "web_ids entry")
+        params: list[_Param] = [("webId", wid) for wid in web_ids]
+        params += [
+            ("startTime", start_time),
+            ("endTime", end_time),
+            ("intervals", intervals),
+        ]
+        resp = await self._client.get("/streamsets/plot", params=params)
+        await raise_for_response_async(resp)
+        return _parse_streamset_items(resp.json())
+
+    async def get_end_ad_hoc(
+        self,
+        web_ids: list[str],
+    ) -> list[StreamSetItem]:
+        """Read the end-of-stream (last archived) value for multiple streams.
+
+        Calls ``GET /streamsets/end?webId=A&webId=B&...``.
+
+        Args:
+            web_ids: List of WebIDs to read.
+
+        Returns:
+            List of :class:`StreamSetItem` objects, one per WebID.
+
+        Raises:
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        for wid in web_ids:
+            validate_web_id(wid, "web_ids entry")
+        params: list[_Param] = [("webId", wid) for wid in web_ids]
+        resp = await self._client.get("/streamsets/end", params=params)
+        await raise_for_response_async(resp)
+        return _parse_streamset_items(resp.json())
+
+    async def get_summary_ad_hoc(
+        self,
+        web_ids: list[str],
+        start_time: str = "-1h",
+        end_time: str = "*",
+        summary_type: str = "All",
+        calculation_basis: str = "TimeWeighted",
+    ) -> list[StreamSetItem]:
+        """Read summary statistics for multiple streams in one call.
+
+        Calls ``GET /streamsets/summary?webId=A&webId=B&...``.
+
+        Args:
+            web_ids: List of WebIDs to read.
+            start_time: Start time as a PI time string. Defaults to ``"-1h"``.
+            end_time: End time as a PI time string. Defaults to ``"*"`` (now).
+            summary_type: Comma-separated list of summary types.
+                Defaults to ``"All"``.
+            calculation_basis: ``"TimeWeighted"`` (default) or
+                ``"EventWeighted"``.
+
+        Returns:
+            List of :class:`StreamSetItem` objects, one per WebID.
+
+        Raises:
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        for wid in web_ids:
+            validate_web_id(wid, "web_ids entry")
+        params: list[_Param] = [("webId", wid) for wid in web_ids]
+        params += [
+            ("startTime", start_time),
+            ("endTime", end_time),
+            ("summaryType", summary_type),
+            ("calculationBasis", calculation_basis),
+        ]
+        resp = await self._client.get("/streamsets/summary", params=params)
+        await raise_for_response_async(resp)
+        return _parse_streamset_items(resp.json())
+
+    async def update_values_ad_hoc(
+        self,
+        items: list[dict[str, Any]],
+    ) -> None:
+        """Write snapshot values to multiple streams in a single request.
+
+        Calls ``POST /streamsets/value``.  Each item in the list must
+        contain a ``"WebId"`` key identifying the target stream and a
+        ``"Value"`` key with the payload to write.
+
+        Args:
+            items: List of dicts, each with at least ``"WebId"`` and
+                ``"Value"`` keys.
+
+        Raises:
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        resp = await self._client.post("/streamsets/value", json=items)
+        await raise_for_response_async(resp)
+
+    async def update_values_by_element(
+        self,
+        element_web_id: str,
+        items: list[dict[str, Any]],
+    ) -> None:
+        """Write snapshot values to all attributes of an AF element.
+
+        Calls ``POST /streamsets/{elementWebId}/value``.
+
+        Args:
+            element_web_id: WebID of the AF element.
+            items: List of dicts, each with at least ``"WebId"`` and
+                ``"Value"`` keys.
+
+        Raises:
+            NotFoundError: If the element WebID is not found.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        validate_web_id(element_web_id, "element_web_id")
+        resp = await self._client.post(
+            f"/streamsets/{quote(element_web_id, safe='')}/value",
+            json=items,
+        )
+        await raise_for_response_async(resp)
 
     async def get_recorded_by_element(
         self,
