@@ -771,6 +771,7 @@ class AsyncElementsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(element_web_id, "element_web_id")
         resp = await self._client.get(
             f"/elements/{quote(element_web_id, safe='')}/attributes",
             params={"nameFilter": name_filter, "maxCount": max_count},
@@ -794,6 +795,7 @@ class AsyncElementsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = await self._client.get(f"/attributes/{quote(web_id, safe='')}")
         await raise_for_response_async(resp)
         return PIAttribute.model_validate(resp.json())
@@ -850,6 +852,7 @@ class AsyncElementsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(element_web_id, "element_web_id")
         body: dict[str, Any] = {"Name": name}
         if description:
             body["Description"] = description
@@ -887,6 +890,7 @@ class AsyncElementsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = await self._client.patch(
             f"/attributes/{quote(web_id, safe='')}",
             json=body,
@@ -909,6 +913,7 @@ class AsyncElementsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = await self._client.get(
             f"/attributes/{quote(web_id, safe='')}/value"
         )
@@ -936,6 +941,7 @@ class AsyncElementsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         body = value if isinstance(value, dict) else {"Value": value}
         resp = await self._client.put(
             f"/attributes/{quote(web_id, safe='')}/value",
@@ -963,6 +969,7 @@ class AsyncElementsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = await self._client.patch(
             f"/elements/{quote(web_id, safe='')}",
             json=body,
@@ -980,6 +987,7 @@ class AsyncElementsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = await self._client.delete(f"/attributes/{quote(web_id, safe='')}")
         await raise_for_response_async(resp)
 
@@ -1003,6 +1011,7 @@ class AsyncElementsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(parent_web_id, "parent_web_id")
         body: dict[str, Any] = {"Name": name}
         if description:
             body["Description"] = description
@@ -1025,5 +1034,6 @@ class AsyncElementsMixin:
             AuthenticationError: If the request is rejected as unauthorized.
             PIWebAPIError: For any other non-2xx response.
         """
+        validate_web_id(web_id)
         resp = await self._client.delete(f"/elements/{quote(web_id, safe='')}")
         await raise_for_response_async(resp)
