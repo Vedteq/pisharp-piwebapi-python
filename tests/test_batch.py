@@ -264,3 +264,58 @@ async def test_async_execute_batch_raise_on_errors_false() -> None:
         )
 
     assert result["2"]["Status"] == 404
+
+
+# ===========================================================================
+# Batch request validation (SSRF prevention)
+# ===========================================================================
+
+
+def test_batch_rejects_absolute_resource_url() -> None:
+    """execute_batch rejects absolute URLs in Resource (SSRF prevention)."""
+    with httpx.Client(base_url=BASE) as client:
+        batch = _SyncBatch(client)
+        with pytest.raises(ValueError, match="relative path"):
+            batch.execute_batch(
+                {"1": {"Method": "GET", "Resource": "https://evil.com/steal"}}
+            )
+
+
+def test_batch_rejects_invalid_method() -> None:
+    """execute_batch rejects unexpected HTTP methods."""
+    with httpx.Client(base_url=BASE) as client:
+        batch = _SyncBatch(client)
+        with pytest.raises(ValueError, match="invalid method"):
+            batch.execute_batch(
+                {"1": {"Method": "TRACE", "Resource": "/points"}}
+            )
+
+
+def test_batch_rejects_empty_resource() -> None:
+    """execute_batch rejects empty Resource strings."""
+    with httpx.Client(base_url=BASE) as client:
+        batch = _SyncBatch(client)
+        with pytest.raises(ValueError, match="relative path"):
+            batch.execute_batch(
+                {"1": {"Method": "GET", "Resource": ""}}
+            )
+
+
+async def test_async_batch_rejects_absolute_resource_url() -> None:
+    """Async execute_batch rejects absolute URLs in Resource."""
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        batch = _AsyncBatch(client)
+        with pytest.raises(ValueError, match="relative path"):
+            await batch.execute_batch(
+                {"1": {"Method": "GET", "Resource": "https://evil.com/steal"}}
+            )
+
+
+async def test_async_batch_rejects_invalid_method() -> None:
+    """Async execute_batch rejects unexpected HTTP methods."""
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        batch = _AsyncBatch(client)
+        with pytest.raises(ValueError, match="invalid method"):
+            await batch.execute_batch(
+                {"1": {"Method": "OPTIONS", "Resource": "/points"}}
+            )

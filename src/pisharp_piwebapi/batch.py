@@ -13,6 +13,37 @@ from pisharp_piwebapi.exceptions import (
 if TYPE_CHECKING:
     import httpx
 
+_ALLOWED_BATCH_METHODS = frozenset({"GET", "POST", "PUT", "PATCH", "DELETE"})
+
+
+def _validate_batch_requests(requests: dict[str, dict[str, Any]]) -> None:
+    """Validate batch sub-request definitions before sending.
+
+    Checks that each sub-request has a valid HTTP method and a relative
+    resource path.  This prevents SSRF via absolute URLs and rejects
+    unexpected HTTP verbs.
+
+    Args:
+        requests: The batch request dict to validate.
+
+    Raises:
+        ValueError: If any sub-request has an invalid method or a
+            non-relative resource path.
+    """
+    for req_id, req in requests.items():
+        method = req.get("Method", "")
+        if method not in _ALLOWED_BATCH_METHODS:
+            raise ValueError(
+                f"Batch request {req_id!r}: invalid method {method!r}. "
+                f"Must be one of {sorted(_ALLOWED_BATCH_METHODS)}."
+            )
+        resource = req.get("Resource", "")
+        if not resource.startswith("/"):
+            raise ValueError(
+                f"Batch request {req_id!r}: Resource must be a relative "
+                f"path starting with '/'. Got {resource!r}."
+            )
+
 
 def _check_batch_errors(data: dict[str, Any]) -> None:
     """Inspect batch sub-responses and raise :class:`BatchError` on failures.
@@ -98,7 +129,10 @@ class BatchMixin:
             AuthenticationError: If the outer batch request is rejected.
             ServerError: If the server returns a 5xx for the outer request.
             PIWebAPIError: For any other non-2xx outer response.
+            ValueError: If any sub-request has an invalid method or
+                absolute resource URL.
         """
+        _validate_batch_requests(requests)
         resp = self._client.post("/batch", json=requests)
         raise_for_response(resp)
         data: dict[str, Any] = resp.json()
@@ -140,7 +174,10 @@ class AsyncBatchMixin:
             AuthenticationError: If the outer batch request is rejected.
             ServerError: If the server returns a 5xx for the outer request.
             PIWebAPIError: For any other non-2xx outer response.
+            ValueError: If any sub-request has an invalid method or
+                absolute resource URL.
         """
+        _validate_batch_requests(requests)
         resp = await self._client.post("/batch", json=requests)
         await raise_for_response_async(resp)
         data: dict[str, Any] = resp.json()

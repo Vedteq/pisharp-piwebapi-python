@@ -14,7 +14,55 @@ from pisharp_piwebapi.exceptions import (
     ServerError,
     classify_error,
     raise_for_response,
+    validate_web_id,
 )
+
+
+# ===========================================================================
+# validate_web_id
+# ===========================================================================
+
+
+def test_validate_web_id_accepts_valid() -> None:
+    """Valid Base64url WebIDs pass without error."""
+    validate_web_id("P0HkV9SiKIkykmpIlkJfOVdg5AUAAAAU0VSVkVSXFNJTlVTT0lE")
+    validate_web_id("E0pump001")
+    validate_web_id("Ab-Cd_Ef012")
+
+
+def test_validate_web_id_rejects_empty() -> None:
+    with pytest.raises(ValueError, match="must not be empty"):
+        validate_web_id("")
+
+
+def test_validate_web_id_rejects_whitespace() -> None:
+    with pytest.raises(ValueError, match="must not be empty"):
+        validate_web_id("   ")
+
+
+def test_validate_web_id_rejects_path_traversal() -> None:
+    with pytest.raises(ValueError, match="invalid characters"):
+        validate_web_id("P0abc/../../../admin")
+
+
+def test_validate_web_id_rejects_slash() -> None:
+    with pytest.raises(ValueError, match="invalid characters"):
+        validate_web_id("P0abc/def")
+
+
+def test_validate_web_id_rejects_special_chars() -> None:
+    with pytest.raises(ValueError, match="invalid characters"):
+        validate_web_id("P0abc%2Fdef")
+
+
+def test_validate_web_id_rejects_spaces() -> None:
+    with pytest.raises(ValueError, match="invalid characters"):
+        validate_web_id("P0abc def")
+
+
+def test_validate_web_id_custom_param_name() -> None:
+    with pytest.raises(ValueError, match="element_web_id"):
+        validate_web_id("", param_name="element_web_id")
 
 
 # ===========================================================================

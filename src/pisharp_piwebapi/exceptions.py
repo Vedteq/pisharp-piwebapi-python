@@ -2,31 +2,42 @@
 
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     import httpx
 
+# PI Web API WebIDs are Base64url-encoded opaque tokens.
+_WEB_ID_RE = re.compile(r"^[A-Za-z0-9_\-]+$")
+
 
 def validate_web_id(value: str, param_name: str = "web_id") -> None:
-    """Raise ``ValueError`` if *value* is empty or whitespace-only.
+    """Raise ``ValueError`` if *value* is not a valid PI Web API WebID.
 
     Called at the top of every resource method that embeds a WebID (or
-    similar identifier like a marker) into a URL path segment.  An empty
-    string would produce a malformed URL like ``/streams//value`` and
-    return a confusing 404 from the server.
+    similar identifier like a marker) into a URL path segment.  Validates
+    that the value is non-empty and contains only Base64url-safe characters
+    (``[A-Za-z0-9_-]``), which prevents path traversal and injection attacks.
 
     Args:
         value: The WebID or identifier string to validate.
         param_name: Name of the parameter (used in the error message).
 
     Raises:
-        ValueError: If *value* is empty or whitespace-only.
+        ValueError: If *value* is empty, whitespace-only, or contains
+            characters outside the Base64url alphabet.
     """
     if not value or not value.strip():
         raise ValueError(
             f"{param_name} must not be empty. "
             "Pass a valid PI Web API WebID string."
+        )
+    if not _WEB_ID_RE.match(value):
+        raise ValueError(
+            f"{param_name} contains invalid characters. "
+            "A WebID must consist only of alphanumeric characters, "
+            "hyphens, and underscores."
         )
 
 
