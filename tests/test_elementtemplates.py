@@ -7,7 +7,7 @@ import pytest
 import respx
 
 from pisharp_piwebapi.exceptions import AuthenticationError, NotFoundError
-from pisharp_piwebapi.models import PIElementTemplate
+from pisharp_piwebapi.models import PIAttributeTemplate, PIElementTemplate
 from pisharp_piwebapi.elementtemplates import (
     AsyncElementTemplatesMixin,
     ElementTemplatesMixin,
@@ -53,8 +53,24 @@ TEMPLATES_LIST_PAYLOAD = {
 
 ATTR_TEMPLATES_PAYLOAD = {
     "Items": [
-        {"Name": "Temperature", "Type": "Double", "DefaultValue": 0.0},
-        {"Name": "Pressure", "Type": "Double", "DefaultValue": 14.7},
+        {
+            "WebId": "E1AbEAttrTmpl001",
+            "Name": "Temperature",
+            "Type": "Double",
+            "DefaultValue": 0.0,
+            "DataReferencePlugIn": "PI Point",
+            "HasChildren": False,
+            "Links": {},
+        },
+        {
+            "WebId": "E1AbEAttrTmpl002",
+            "Name": "Pressure",
+            "Type": "Double",
+            "DefaultValue": 14.7,
+            "DataReferencePlugIn": "PI Point",
+            "HasChildren": False,
+            "Links": {},
+        },
     ]
 }
 
@@ -199,7 +215,7 @@ def test_get_by_database_404_raises() -> None:
 
 @respx.mock
 def test_get_attribute_templates_happy_path() -> None:
-    """get_attribute_templates returns a list of dicts."""
+    """get_attribute_templates returns a list of PIAttributeTemplate."""
     respx.get(
         f"{BASE}/elementtemplates/{TMPL_WEB_ID}/attributetemplates"
     ).mock(return_value=httpx.Response(200, json=ATTR_TEMPLATES_PAYLOAD))
@@ -208,8 +224,12 @@ def test_get_attribute_templates_happy_path() -> None:
         attrs = _SyncTemplates(client).get_attribute_templates(TMPL_WEB_ID)
 
     assert len(attrs) == 2
-    assert attrs[0]["Name"] == "Temperature"
-    assert attrs[1]["Name"] == "Pressure"
+    assert all(isinstance(a, PIAttributeTemplate) for a in attrs)
+    assert attrs[0].name == "Temperature"
+    assert attrs[0].type == "Double"
+    assert attrs[0].default_value == 0.0
+    assert attrs[1].name == "Pressure"
+    assert attrs[1].default_value == 14.7
 
 
 @respx.mock
@@ -300,7 +320,7 @@ async def test_async_get_by_database_happy_path() -> None:
 
 @respx.mock
 async def test_async_get_attribute_templates_happy_path() -> None:
-    """Async get_attribute_templates returns a list of dicts."""
+    """Async get_attribute_templates returns a list of PIAttributeTemplate."""
     respx.get(
         f"{BASE}/elementtemplates/{TMPL_WEB_ID}/attributetemplates"
     ).mock(return_value=httpx.Response(200, json=ATTR_TEMPLATES_PAYLOAD))
@@ -311,4 +331,5 @@ async def test_async_get_attribute_templates_happy_path() -> None:
         )
 
     assert len(attrs) == 2
-    assert attrs[0]["Name"] == "Temperature"
+    assert all(isinstance(a, PIAttributeTemplate) for a in attrs)
+    assert attrs[0].name == "Temperature"

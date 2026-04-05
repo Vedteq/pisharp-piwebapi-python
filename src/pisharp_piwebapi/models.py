@@ -370,6 +370,36 @@ class PIElementTemplate(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+class PIAttributeTemplate(BaseModel):
+    """Represents a PI AF Attribute Template.
+
+    Attribute templates define the attributes that are automatically
+    created on elements derived from an element template.
+    """
+
+    web_id: str = Field(alias="WebId")
+    id: str = Field(alias="Id", default="")
+    name: str = Field(alias="Name")
+    description: str = Field(alias="Description", default="")
+    path: str = Field(alias="Path", default="")
+    type: str = Field(alias="Type", default="")
+    type_qualifier: str = Field(alias="TypeQualifier", default="")
+    default_value: Any = Field(alias="DefaultValue", default=None)
+    config_string: str = Field(alias="ConfigString", default="")
+    data_reference_plugin: str = Field(alias="DataReferencePlugIn", default="")
+    has_children: bool = Field(alias="HasChildren", default=False)
+    is_configuration_item: bool = Field(alias="IsConfigurationItem", default=False)
+    is_excluded: bool = Field(alias="IsExcluded", default=False)
+    is_hidden: bool = Field(alias="IsHidden", default=False)
+    is_manual_data_entry: bool = Field(alias="IsManualDataEntry", default=False)
+    category_names: list[str] = Field(alias="CategoryNames", default_factory=list)
+    trait_name: str = Field(alias="TraitName", default="")
+    default_units_name: str = Field(alias="DefaultUnitsName", default="")
+    links: dict[str, str] = Field(alias="Links", default_factory=dict)
+
+    model_config = {"populate_by_name": True}
+
+
 class PINotificationRule(BaseModel):
     """Represents a PI AF Notification Rule."""
 

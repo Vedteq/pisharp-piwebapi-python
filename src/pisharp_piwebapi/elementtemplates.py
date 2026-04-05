@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 from urllib.parse import quote
 
 from pisharp_piwebapi.exceptions import (
@@ -10,7 +10,7 @@ from pisharp_piwebapi.exceptions import (
     raise_for_response_async,
     validate_web_id,
 )
-from pisharp_piwebapi.models import PIElementTemplate
+from pisharp_piwebapi.models import PIAttributeTemplate, PIElementTemplate
 
 if TYPE_CHECKING:
     import httpx
@@ -110,7 +110,7 @@ class ElementTemplatesMixin:
         template_web_id: str,
         name_filter: str = "*",
         max_count: int = 100,
-    ) -> list[dict[str, Any]]:
+    ) -> list[PIAttributeTemplate]:
         """List attribute templates defined on an element template.
 
         Calls ``GET /elementtemplates/{webId}/attributetemplates``.
@@ -123,9 +123,7 @@ class ElementTemplatesMixin:
                 Defaults to ``100``.
 
         Returns:
-            List of attribute template dicts as returned by the API.
-            Each dict contains keys like ``"Name"``, ``"Type"``,
-            ``"DefaultValue"``, etc.
+            List of :class:`PIAttributeTemplate` objects.
 
         Raises:
             NotFoundError: If the template WebID is not found.
@@ -141,7 +139,7 @@ class ElementTemplatesMixin:
         raise_for_response(resp)
         data = resp.json()
         items = data.get("Items", data) if isinstance(data, dict) else data
-        return list(items)
+        return [PIAttributeTemplate.model_validate(item) for item in items]
 
 
 class AsyncElementTemplatesMixin:
@@ -235,7 +233,7 @@ class AsyncElementTemplatesMixin:
         template_web_id: str,
         name_filter: str = "*",
         max_count: int = 100,
-    ) -> list[dict[str, Any]]:
+    ) -> list[PIAttributeTemplate]:
         """List attribute templates defined on an element template.
 
         Calls ``GET /elementtemplates/{webId}/attributetemplates``.
@@ -248,7 +246,7 @@ class AsyncElementTemplatesMixin:
                 Defaults to ``100``.
 
         Returns:
-            List of attribute template dicts as returned by the API.
+            List of :class:`PIAttributeTemplate` objects.
 
         Raises:
             NotFoundError: If the template WebID is not found.
@@ -264,4 +262,4 @@ class AsyncElementTemplatesMixin:
         await raise_for_response_async(resp)
         data = resp.json()
         items = data.get("Items", data) if isinstance(data, dict) else data
-        return list(items)
+        return [PIAttributeTemplate.model_validate(item) for item in items]
