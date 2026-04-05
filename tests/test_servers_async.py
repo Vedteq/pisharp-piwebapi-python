@@ -10,7 +10,16 @@ from conftest import (
     ELEMENT_PUMP,
 )
 
-from pisharp_piwebapi.models import PIAssetServer, PIDatabase, PIDataServer, PIElement
+from pisharp_piwebapi.models import (
+    EnumerationSet,
+    EventFrame,
+    PIAssetServer,
+    PIDatabase,
+    PIDataServer,
+    PIElement,
+    PIElementTemplate,
+    PITable,
+)
 
 
 class TestAssetServersAsync:
@@ -79,3 +88,72 @@ class TestDatabasesAsync:
         elements = await client.databases.get_elements("DB001")
         assert len(elements) == 1
         assert isinstance(elements[0], PIElement)
+
+    async def test_get_elementtemplates(self, async_client):
+        client, mock = async_client
+        tmpl = {
+            "WebId": "ET001",
+            "Name": "PumpTemplate",
+            "Description": "Pump template",
+            "InstanceType": "Element",
+            "Links": {},
+        }
+        mock.get("/assetdatabases/DB001/elementtemplates").mock(
+            return_value=httpx.Response(200, json={"Items": [tmpl]})
+        )
+        templates = await client.databases.get_elementtemplates("DB001")
+        assert len(templates) == 1
+        assert isinstance(templates[0], PIElementTemplate)
+
+    async def test_get_enumerationsets(self, async_client):
+        client, mock = async_client
+        eset = {
+            "WebId": "ES001",
+            "Name": "StatusCodes",
+            "Links": {},
+        }
+        mock.get("/assetdatabases/DB001/enumerationsets").mock(
+            return_value=httpx.Response(200, json={"Items": [eset]})
+        )
+        esets = await client.databases.get_enumerationsets("DB001")
+        assert len(esets) == 1
+        assert isinstance(esets[0], EnumerationSet)
+
+    async def test_get_eventframes(self, async_client):
+        client, mock = async_client
+        ef = {
+            "WebId": "EF001",
+            "Name": "Shutdown-001",
+            "StartTime": "2024-06-15T08:00:00Z",
+            "Links": {},
+        }
+        mock.get("/assetdatabases/DB001/eventframes").mock(
+            return_value=httpx.Response(200, json={"Items": [ef]})
+        )
+        frames = await client.databases.get_eventframes("DB001")
+        assert len(frames) == 1
+        assert isinstance(frames[0], EventFrame)
+
+    async def test_get_tables(self, async_client):
+        client, mock = async_client
+        tbl = {
+            "WebId": "TBL001",
+            "Name": "LookupTable",
+            "Links": {},
+        }
+        mock.get("/assetdatabases/DB001/tables").mock(
+            return_value=httpx.Response(200, json={"Items": [tbl]})
+        )
+        tables = await client.databases.get_tables("DB001")
+        assert len(tables) == 1
+        assert isinstance(tables[0], PITable)
+
+    async def test_create_element_template(self, async_client):
+        client, mock = async_client
+        route = mock.post("/assetdatabases/DB001/elementtemplates").mock(
+            return_value=httpx.Response(201)
+        )
+        await client.databases.create_element_template(
+            "DB001", "NewTemplate"
+        )
+        assert route.called

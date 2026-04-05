@@ -10,7 +10,16 @@ from pisharp_piwebapi.exceptions import (
     raise_for_response_async,
     validate_web_id,
 )
-from pisharp_piwebapi.models import PIAssetServer, PIDatabase, PIDataServer, PIElement
+from pisharp_piwebapi.models import (
+    EnumerationSet,
+    EventFrame,
+    PIAssetServer,
+    PIDatabase,
+    PIDataServer,
+    PIElement,
+    PIElementTemplate,
+    PITable,
+)
 
 if TYPE_CHECKING:
     import httpx
@@ -98,7 +107,21 @@ class DatabasesMixin:
         return PIDatabase.model_validate(resp.json())
 
     def get_elements(self, web_id: str, max_count: int = 1000) -> list[PIElement]:
-        """Get top-level elements in an AF Database."""
+        """Get top-level elements in an AF Database.
+
+        Calls ``GET /assetdatabases/{webId}/elements``.
+
+        Args:
+            web_id: WebID of the AF database.
+            max_count: Maximum number of elements to return.
+
+        Returns:
+            List of :class:`PIElement` objects.
+
+        Raises:
+            NotFoundError: If the database WebID is not found.
+            PIWebAPIError: For any other non-2xx response.
+        """
         validate_web_id(web_id)
         resp = self._client.get(
             f"/assetdatabases/{quote(web_id, safe='')}/elements",
@@ -108,6 +131,179 @@ class DatabasesMixin:
         data = resp.json()
         items = data.get("Items", []) if isinstance(data, dict) else data
         return [PIElement.model_validate(item) for item in items]
+
+    def get_elementtemplates(
+        self,
+        web_id: str,
+        name_filter: str = "*",
+        max_count: int = 100,
+    ) -> list[PIElementTemplate]:
+        """List element templates in an AF Database.
+
+        Calls ``GET /assetdatabases/{webId}/elementtemplates``.
+
+        Args:
+            web_id: WebID of the AF database.
+            name_filter: Name pattern supporting wildcards.
+            max_count: Maximum number of results.
+
+        Returns:
+            List of :class:`PIElementTemplate` objects.
+
+        Raises:
+            NotFoundError: If the database WebID is not found.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        validate_web_id(web_id)
+        resp = self._client.get(
+            f"/assetdatabases/{quote(web_id, safe='')}/elementtemplates",
+            params={"nameFilter": name_filter, "maxCount": max_count},
+        )
+        raise_for_response(resp)
+        data = resp.json()
+        items = data.get("Items", []) if isinstance(data, dict) else data
+        return [PIElementTemplate.model_validate(item) for item in items]
+
+    def get_enumerationsets(
+        self,
+        web_id: str,
+        name_filter: str = "*",
+        max_count: int = 100,
+    ) -> list[EnumerationSet]:
+        """List enumeration sets in an AF Database.
+
+        Calls ``GET /assetdatabases/{webId}/enumerationsets``.
+
+        Args:
+            web_id: WebID of the AF database.
+            name_filter: Name pattern supporting wildcards.
+            max_count: Maximum number of results.
+
+        Returns:
+            List of :class:`EnumerationSet` objects.
+
+        Raises:
+            NotFoundError: If the database WebID is not found.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        validate_web_id(web_id)
+        resp = self._client.get(
+            f"/assetdatabases/{quote(web_id, safe='')}/enumerationsets",
+            params={"nameFilter": name_filter, "maxCount": max_count},
+        )
+        raise_for_response(resp)
+        data = resp.json()
+        items = data.get("Items", []) if isinstance(data, dict) else data
+        return [EnumerationSet.model_validate(item) for item in items]
+
+    def get_eventframes(
+        self,
+        web_id: str,
+        start_time: str = "*-1d",
+        end_time: str = "*",
+        name_filter: str = "*",
+        max_count: int = 100,
+    ) -> list[EventFrame]:
+        """List event frames in an AF Database.
+
+        Calls ``GET /assetdatabases/{webId}/eventframes``.
+
+        Args:
+            web_id: WebID of the AF database.
+            start_time: Start of the time range (PI time string).
+            end_time: End of the time range (PI time string).
+            name_filter: Name pattern supporting wildcards.
+            max_count: Maximum number of results.
+
+        Returns:
+            List of :class:`EventFrame` objects.
+
+        Raises:
+            NotFoundError: If the database WebID is not found.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        validate_web_id(web_id)
+        resp = self._client.get(
+            f"/assetdatabases/{quote(web_id, safe='')}/eventframes",
+            params={
+                "startTime": start_time,
+                "endTime": end_time,
+                "nameFilter": name_filter,
+                "maxCount": max_count,
+            },
+        )
+        raise_for_response(resp)
+        data = resp.json()
+        items = data.get("Items", []) if isinstance(data, dict) else data
+        return [EventFrame.model_validate(item) for item in items]
+
+    def get_tables(
+        self,
+        web_id: str,
+        name_filter: str = "*",
+        max_count: int = 100,
+    ) -> list[PITable]:
+        """List tables in an AF Database.
+
+        Calls ``GET /assetdatabases/{webId}/tables``.
+
+        Args:
+            web_id: WebID of the AF database.
+            name_filter: Name pattern supporting wildcards.
+            max_count: Maximum number of results.
+
+        Returns:
+            List of :class:`PITable` objects.
+
+        Raises:
+            NotFoundError: If the database WebID is not found.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        validate_web_id(web_id)
+        resp = self._client.get(
+            f"/assetdatabases/{quote(web_id, safe='')}/tables",
+            params={"nameFilter": name_filter, "maxCount": max_count},
+        )
+        raise_for_response(resp)
+        data = resp.json()
+        items = data.get("Items", []) if isinstance(data, dict) else data
+        return [PITable.model_validate(item) for item in items]
+
+    def create_element_template(
+        self,
+        web_id: str,
+        name: str,
+        *,
+        description: str = "",
+        instance_type: str = "Element",
+    ) -> None:
+        """Create a new element template in an AF Database.
+
+        Calls ``POST /assetdatabases/{webId}/elementtemplates``.
+
+        Args:
+            web_id: WebID of the AF database.
+            name: Name of the new element template.
+            description: Optional description.
+            instance_type: Instance type — ``"Element"`` or
+                ``"EventFrame"``. Defaults to ``"Element"``.
+
+        Raises:
+            NotFoundError: If the database WebID is not found.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        validate_web_id(web_id)
+        body = {
+            "Name": name,
+            "Description": description,
+            "InstanceType": instance_type,
+        }
+        resp = self._client.post(
+            f"/assetdatabases/{quote(web_id, safe='')}/elementtemplates",
+            json=body,
+        )
+        raise_for_response(resp)
 
 
 class AsyncAssetServersMixin:
@@ -193,8 +389,24 @@ class AsyncDatabasesMixin:
         await raise_for_response_async(resp)
         return PIDatabase.model_validate(resp.json())
 
-    async def get_elements(self, web_id: str, max_count: int = 1000) -> list[PIElement]:
-        """Get top-level elements in an AF Database (async)."""
+    async def get_elements(
+        self, web_id: str, max_count: int = 1000
+    ) -> list[PIElement]:
+        """Get top-level elements in an AF Database (async).
+
+        Calls ``GET /assetdatabases/{webId}/elements``.
+
+        Args:
+            web_id: WebID of the AF database.
+            max_count: Maximum number of elements to return.
+
+        Returns:
+            List of :class:`PIElement` objects.
+
+        Raises:
+            NotFoundError: If the database WebID is not found.
+            PIWebAPIError: For any other non-2xx response.
+        """
         validate_web_id(web_id)
         resp = await self._client.get(
             f"/assetdatabases/{quote(web_id, safe='')}/elements",
@@ -204,3 +416,176 @@ class AsyncDatabasesMixin:
         data = resp.json()
         items = data.get("Items", []) if isinstance(data, dict) else data
         return [PIElement.model_validate(item) for item in items]
+
+    async def get_elementtemplates(
+        self,
+        web_id: str,
+        name_filter: str = "*",
+        max_count: int = 100,
+    ) -> list[PIElementTemplate]:
+        """List element templates in an AF Database (async).
+
+        Calls ``GET /assetdatabases/{webId}/elementtemplates``.
+
+        Args:
+            web_id: WebID of the AF database.
+            name_filter: Name pattern supporting wildcards.
+            max_count: Maximum number of results.
+
+        Returns:
+            List of :class:`PIElementTemplate` objects.
+
+        Raises:
+            NotFoundError: If the database WebID is not found.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        validate_web_id(web_id)
+        resp = await self._client.get(
+            f"/assetdatabases/{quote(web_id, safe='')}/elementtemplates",
+            params={"nameFilter": name_filter, "maxCount": max_count},
+        )
+        await raise_for_response_async(resp)
+        data = resp.json()
+        items = data.get("Items", []) if isinstance(data, dict) else data
+        return [PIElementTemplate.model_validate(item) for item in items]
+
+    async def get_enumerationsets(
+        self,
+        web_id: str,
+        name_filter: str = "*",
+        max_count: int = 100,
+    ) -> list[EnumerationSet]:
+        """List enumeration sets in an AF Database (async).
+
+        Calls ``GET /assetdatabases/{webId}/enumerationsets``.
+
+        Args:
+            web_id: WebID of the AF database.
+            name_filter: Name pattern supporting wildcards.
+            max_count: Maximum number of results.
+
+        Returns:
+            List of :class:`EnumerationSet` objects.
+
+        Raises:
+            NotFoundError: If the database WebID is not found.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        validate_web_id(web_id)
+        resp = await self._client.get(
+            f"/assetdatabases/{quote(web_id, safe='')}/enumerationsets",
+            params={"nameFilter": name_filter, "maxCount": max_count},
+        )
+        await raise_for_response_async(resp)
+        data = resp.json()
+        items = data.get("Items", []) if isinstance(data, dict) else data
+        return [EnumerationSet.model_validate(item) for item in items]
+
+    async def get_eventframes(
+        self,
+        web_id: str,
+        start_time: str = "*-1d",
+        end_time: str = "*",
+        name_filter: str = "*",
+        max_count: int = 100,
+    ) -> list[EventFrame]:
+        """List event frames in an AF Database (async).
+
+        Calls ``GET /assetdatabases/{webId}/eventframes``.
+
+        Args:
+            web_id: WebID of the AF database.
+            start_time: Start of the time range (PI time string).
+            end_time: End of the time range (PI time string).
+            name_filter: Name pattern supporting wildcards.
+            max_count: Maximum number of results.
+
+        Returns:
+            List of :class:`EventFrame` objects.
+
+        Raises:
+            NotFoundError: If the database WebID is not found.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        validate_web_id(web_id)
+        resp = await self._client.get(
+            f"/assetdatabases/{quote(web_id, safe='')}/eventframes",
+            params={
+                "startTime": start_time,
+                "endTime": end_time,
+                "nameFilter": name_filter,
+                "maxCount": max_count,
+            },
+        )
+        await raise_for_response_async(resp)
+        data = resp.json()
+        items = data.get("Items", []) if isinstance(data, dict) else data
+        return [EventFrame.model_validate(item) for item in items]
+
+    async def get_tables(
+        self,
+        web_id: str,
+        name_filter: str = "*",
+        max_count: int = 100,
+    ) -> list[PITable]:
+        """List tables in an AF Database (async).
+
+        Calls ``GET /assetdatabases/{webId}/tables``.
+
+        Args:
+            web_id: WebID of the AF database.
+            name_filter: Name pattern supporting wildcards.
+            max_count: Maximum number of results.
+
+        Returns:
+            List of :class:`PITable` objects.
+
+        Raises:
+            NotFoundError: If the database WebID is not found.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        validate_web_id(web_id)
+        resp = await self._client.get(
+            f"/assetdatabases/{quote(web_id, safe='')}/tables",
+            params={"nameFilter": name_filter, "maxCount": max_count},
+        )
+        await raise_for_response_async(resp)
+        data = resp.json()
+        items = data.get("Items", []) if isinstance(data, dict) else data
+        return [PITable.model_validate(item) for item in items]
+
+    async def create_element_template(
+        self,
+        web_id: str,
+        name: str,
+        *,
+        description: str = "",
+        instance_type: str = "Element",
+    ) -> None:
+        """Create a new element template in an AF Database (async).
+
+        Calls ``POST /assetdatabases/{webId}/elementtemplates``.
+
+        Args:
+            web_id: WebID of the AF database.
+            name: Name of the new element template.
+            description: Optional description.
+            instance_type: Instance type — ``"Element"`` or
+                ``"EventFrame"``. Defaults to ``"Element"``.
+
+        Raises:
+            NotFoundError: If the database WebID is not found.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        validate_web_id(web_id)
+        body = {
+            "Name": name,
+            "Description": description,
+            "InstanceType": instance_type,
+        }
+        resp = await self._client.post(
+            f"/assetdatabases/{quote(web_id, safe='')}/elementtemplates",
+            json=body,
+        )
+        await raise_for_response_async(resp)
