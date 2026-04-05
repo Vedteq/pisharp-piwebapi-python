@@ -43,6 +43,7 @@ from pisharp_piwebapi.servers import (
 )
 from pisharp_piwebapi.streamsets import AsyncStreamSetsMixin, StreamSetsMixin
 from pisharp_piwebapi.system import AsyncSystemMixin, SystemMixin
+from pisharp_piwebapi.tables import AsyncTablesMixin, TablesMixin
 from pisharp_piwebapi.values import AsyncStreamsMixin, StreamsMixin
 
 _VALID_AUTH_METHODS = {"basic", "kerberos", "ntlm"}
@@ -179,6 +180,13 @@ class _SystemAccessor(SystemMixin):
         self._client = client
 
 
+class _TablesAccessor(TablesMixin):
+    """Namespace for AF table operations on the sync client."""
+
+    def __init__(self, client: httpx.Client) -> None:
+        self._client = client
+
+
 class _AsyncAnalysesAccessor(AsyncAnalysesMixin):
     """Namespace for AF analysis operations on the async client."""
 
@@ -286,6 +294,13 @@ class _AsyncDatabasesAccessor(AsyncDatabasesMixin):
 
 class _AsyncSystemAccessor(AsyncSystemMixin):
     """Namespace for system operations on the async client."""
+
+    def __init__(self, client: httpx.AsyncClient) -> None:
+        self._client = client
+
+
+class _AsyncTablesAccessor(AsyncTablesMixin):
+    """Namespace for AF table operations on the async client."""
 
     def __init__(self, client: httpx.AsyncClient) -> None:
         self._client = client
@@ -406,6 +421,7 @@ class PIWebAPIClient(BatchMixin, PaginationMixin):
         self.dataservers = _DataServersAccessor(self._client)
         self.databases = _DatabasesAccessor(self._client)
         self.system = _SystemAccessor(self._client)
+        self.tables = _TablesAccessor(self._client)
 
     def home(self) -> PISystemInfo:
         """Return system information from the PI Web API landing page.
@@ -549,6 +565,7 @@ class AsyncPIWebAPIClient(AsyncBatchMixin, AsyncPaginationMixin):
         self.dataservers = _AsyncDataServersAccessor(self._client)
         self.databases = _AsyncDatabasesAccessor(self._client)
         self.system = _AsyncSystemAccessor(self._client)
+        self.tables = _AsyncTablesAccessor(self._client)
 
     async def home(self) -> PISystemInfo:
         """Return system information from the PI Web API landing page.

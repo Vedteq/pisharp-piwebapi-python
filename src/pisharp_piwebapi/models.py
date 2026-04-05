@@ -505,6 +505,42 @@ class StreamUpdate(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+class PITable(BaseModel):
+    """Represents a PI AF Table.
+
+    AF Tables store tabular lookup or configuration data within an
+    AF database.  Use the table controller to retrieve metadata and
+    the ``get_data`` / ``update_data`` methods to read or write the
+    actual row data.
+    """
+
+    web_id: str = Field(alias="WebId")
+    id: str = Field(alias="Id", default="")
+    name: str = Field(alias="Name")
+    description: str = Field(alias="Description", default="")
+    path: str = Field(alias="Path", default="")
+    category_names: list[str] = Field(alias="CategoryNames", default_factory=list)
+    convert_to_local_time: bool = Field(alias="ConvertToLocalTime", default=False)
+    time_zone: str = Field(alias="TimeZone", default="")
+    links: dict[str, str] = Field(alias="Links", default_factory=dict)
+
+    model_config = {"populate_by_name": True}
+
+
+class PITableData(BaseModel):
+    """Tabular data from a PI AF Table.
+
+    The ``columns`` dict maps column names to their PI type strings.
+    The ``rows`` list contains one dict per row, mapping column names
+    to cell values.
+    """
+
+    columns: dict[str, str] = Field(alias="Columns", default_factory=dict)
+    rows: list[dict[str, Any]] = Field(alias="Rows", default_factory=list)
+
+    model_config = {"populate_by_name": True}
+
+
 class BatchResponseItem(BaseModel):
     """A single response within a PI Web API batch result."""
 
