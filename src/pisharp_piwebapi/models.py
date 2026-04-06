@@ -541,6 +541,109 @@ class PITableData(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+class PIUnitClass(BaseModel):
+    """Represents a PI AF Unit Class (e.g. Temperature, Pressure).
+
+    Unit classes group related engineering units and define a canonical
+    unit for conversions.  Use the unit classes controller to list
+    available classes and their member units.
+    """
+
+    web_id: str = Field(alias="WebId")
+    id: str = Field(alias="Id", default="")
+    name: str = Field(alias="Name")
+    description: str = Field(alias="Description", default="")
+    path: str = Field(alias="Path", default="")
+    canonical_unit_name: str = Field(alias="CanonicalUnitName", default="")
+    canonical_unit_abbreviation: str = Field(
+        alias="CanonicalUnitAbbreviation", default=""
+    )
+    links: dict[str, str] = Field(alias="Links", default_factory=dict)
+
+    model_config = {"populate_by_name": True}
+
+
+class PIUnit(BaseModel):
+    """Represents a PI AF Unit of Measure.
+
+    Units belong to a unit class and define conversion factors relative
+    to the canonical unit: ``canonical = factor * value + offset``.
+    Built-in units are read-only; custom units can be created within
+    user-defined unit classes.
+    """
+
+    web_id: str = Field(alias="WebId")
+    id: str = Field(alias="Id", default="")
+    name: str = Field(alias="Name")
+    abbreviation: str = Field(alias="Abbreviation", default="")
+    description: str = Field(alias="Description", default="")
+    path: str = Field(alias="Path", default="")
+    factor: float = Field(alias="Factor", default=1.0)
+    offset: float = Field(alias="Offset", default=0.0)
+    reference_factor: float = Field(alias="ReferenceFactor", default=0.0)
+    reference_offset: float = Field(alias="ReferenceOffset", default=0.0)
+    reference_unit_abbreviation: str = Field(
+        alias="ReferenceUnitAbbreviation", default=""
+    )
+    links: dict[str, str] = Field(alias="Links", default_factory=dict)
+
+    model_config = {"populate_by_name": True}
+
+
+class PICategory(BaseModel):
+    """Represents a PI AF Category (element, analysis, or attribute).
+
+    Categories are used to classify AF objects within a database.
+    The same model is used for element categories, analysis categories,
+    and attribute categories since the API response shape is identical.
+    """
+
+    web_id: str = Field(alias="WebId")
+    id: str = Field(alias="Id", default="")
+    name: str = Field(alias="Name")
+    description: str = Field(alias="Description", default="")
+    path: str = Field(alias="Path", default="")
+    links: dict[str, str] = Field(alias="Links", default_factory=dict)
+
+    model_config = {"populate_by_name": True}
+
+
+class PIAnalysisTemplate(BaseModel):
+    """Represents a PI AF Analysis Template.
+
+    Analysis templates define reusable analysis configurations that
+    are automatically applied to elements derived from an element
+    template.  Creating an analysis template can auto-create concrete
+    analyses on all derived elements.
+    """
+
+    web_id: str = Field(alias="WebId")
+    id: str = Field(alias="Id", default="")
+    name: str = Field(alias="Name")
+    description: str = Field(alias="Description", default="")
+    path: str = Field(alias="Path", default="")
+    analysis_rule_plugin_name: str = Field(
+        alias="AnalysisRulePlugInName", default=""
+    )
+    category_names: list[str] = Field(
+        alias="CategoryNames", default_factory=list
+    )
+    create_enabled: bool = Field(alias="CreateEnabled", default=False)
+    group_id: int = Field(alias="GroupId", default=0)
+    has_notification_template: bool = Field(
+        alias="HasNotificationTemplate", default=False
+    )
+    has_target: bool = Field(alias="HasTarget", default=False)
+    output_time: str = Field(alias="OutputTime", default="")
+    target_name: str = Field(alias="TargetName", default="")
+    time_rule_plugin_name: str = Field(
+        alias="TimeRulePlugInName", default=""
+    )
+    links: dict[str, str] = Field(alias="Links", default_factory=dict)
+
+    model_config = {"populate_by_name": True}
+
+
 class BatchResponseItem(BaseModel):
     """A single response within a PI Web API batch result."""
 

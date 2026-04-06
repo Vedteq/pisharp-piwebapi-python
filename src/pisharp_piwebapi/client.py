@@ -10,10 +10,22 @@ from urllib.parse import urlparse
 import httpx
 
 from pisharp_piwebapi.analyses import AnalysesMixin, AsyncAnalysesMixin
+from pisharp_piwebapi.analysistemplates import (
+    AnalysisTemplatesMixin,
+    AsyncAnalysisTemplatesMixin,
+)
 from pisharp_piwebapi.attributes import AsyncAttributesMixin, AttributesMixin
 from pisharp_piwebapi.auth import basic_auth, kerberos_auth, ntlm_auth
 from pisharp_piwebapi.batch import AsyncBatchMixin, BatchMixin
 from pisharp_piwebapi.calculation import AsyncCalculationMixin, CalculationMixin
+from pisharp_piwebapi.categories import (
+    AnalysisCategoriesMixin,
+    AsyncAnalysisCategoriesMixin,
+    AsyncAttributeCategoriesMixin,
+    AsyncElementCategoriesMixin,
+    AttributeCategoriesMixin,
+    ElementCategoriesMixin,
+)
 from pisharp_piwebapi.elements import AsyncElementsMixin, ElementsMixin
 from pisharp_piwebapi.elementtemplates import (
     AsyncElementTemplatesMixin,
@@ -44,6 +56,7 @@ from pisharp_piwebapi.servers import (
 from pisharp_piwebapi.streamsets import AsyncStreamSetsMixin, StreamSetsMixin
 from pisharp_piwebapi.system import AsyncSystemMixin, SystemMixin
 from pisharp_piwebapi.tables import AsyncTablesMixin, TablesMixin
+from pisharp_piwebapi.unitclasses import AsyncUnitClassesMixin, UnitClassesMixin
 from pisharp_piwebapi.values import AsyncStreamsMixin, StreamsMixin
 
 _VALID_AUTH_METHODS = {"basic", "kerberos", "ntlm"}
@@ -66,6 +79,13 @@ def _build_async_event_hooks() -> dict[str, list[Any]]:
         await raise_for_response_async(response)
 
     return {"response": [_raise_on_error_async]}
+
+
+class _AnalysisTemplatesAccessor(AnalysisTemplatesMixin):
+    """Namespace for analysis template operations on the sync client."""
+
+    def __init__(self, client: httpx.Client) -> None:
+        self._client = client
 
 
 class _AnalysesAccessor(AnalysesMixin):
@@ -184,6 +204,41 @@ class _TablesAccessor(TablesMixin):
     """Namespace for AF table operations on the sync client."""
 
     def __init__(self, client: httpx.Client) -> None:
+        self._client = client
+
+
+class _UnitClassesAccessor(UnitClassesMixin):
+    """Namespace for unit class operations on the sync client."""
+
+    def __init__(self, client: httpx.Client) -> None:
+        self._client = client
+
+
+class _ElementCategoriesAccessor(ElementCategoriesMixin):
+    """Namespace for element category operations on the sync client."""
+
+    def __init__(self, client: httpx.Client) -> None:
+        self._client = client
+
+
+class _AnalysisCategoriesAccessor(AnalysisCategoriesMixin):
+    """Namespace for analysis category operations on the sync client."""
+
+    def __init__(self, client: httpx.Client) -> None:
+        self._client = client
+
+
+class _AttributeCategoriesAccessor(AttributeCategoriesMixin):
+    """Namespace for attribute category operations on the sync client."""
+
+    def __init__(self, client: httpx.Client) -> None:
+        self._client = client
+
+
+class _AsyncAnalysisTemplatesAccessor(AsyncAnalysisTemplatesMixin):
+    """Namespace for analysis template operations on the async client."""
+
+    def __init__(self, client: httpx.AsyncClient) -> None:
         self._client = client
 
 
@@ -306,6 +361,34 @@ class _AsyncTablesAccessor(AsyncTablesMixin):
         self._client = client
 
 
+class _AsyncUnitClassesAccessor(AsyncUnitClassesMixin):
+    """Namespace for unit class operations on the async client."""
+
+    def __init__(self, client: httpx.AsyncClient) -> None:
+        self._client = client
+
+
+class _AsyncElementCategoriesAccessor(AsyncElementCategoriesMixin):
+    """Namespace for element category operations on the async client."""
+
+    def __init__(self, client: httpx.AsyncClient) -> None:
+        self._client = client
+
+
+class _AsyncAnalysisCategoriesAccessor(AsyncAnalysisCategoriesMixin):
+    """Namespace for analysis category operations on the async client."""
+
+    def __init__(self, client: httpx.AsyncClient) -> None:
+        self._client = client
+
+
+class _AsyncAttributeCategoriesAccessor(AsyncAttributeCategoriesMixin):
+    """Namespace for attribute category operations on the async client."""
+
+    def __init__(self, client: httpx.AsyncClient) -> None:
+        self._client = client
+
+
 class PIWebAPIClient(BatchMixin, PaginationMixin):
     """Synchronous PI Web API client.
 
@@ -406,6 +489,7 @@ class PIWebAPIClient(BatchMixin, PaginationMixin):
             event_hooks=_build_event_hooks(),
         )
         self.analyses = _AnalysesAccessor(self._client)
+        self.analysistemplates = _AnalysisTemplatesAccessor(self._client)
         self.attributes = _AttributesAccessor(self._client)
         self.points = _PointsAccessor(self._client)
         self.streams = _StreamsAccessor(self._client)
@@ -422,6 +506,10 @@ class PIWebAPIClient(BatchMixin, PaginationMixin):
         self.databases = _DatabasesAccessor(self._client)
         self.system = _SystemAccessor(self._client)
         self.tables = _TablesAccessor(self._client)
+        self.unitclasses = _UnitClassesAccessor(self._client)
+        self.elementcategories = _ElementCategoriesAccessor(self._client)
+        self.analysiscategories = _AnalysisCategoriesAccessor(self._client)
+        self.attributecategories = _AttributeCategoriesAccessor(self._client)
 
     def home(self) -> PISystemInfo:
         """Return system information from the PI Web API landing page.
@@ -550,6 +638,7 @@ class AsyncPIWebAPIClient(AsyncBatchMixin, AsyncPaginationMixin):
             event_hooks=_build_async_event_hooks(),
         )
         self.analyses = _AsyncAnalysesAccessor(self._client)
+        self.analysistemplates = _AsyncAnalysisTemplatesAccessor(self._client)
         self.attributes = _AsyncAttributesAccessor(self._client)
         self.points = _AsyncPointsAccessor(self._client)
         self.streams = _AsyncStreamsAccessor(self._client)
@@ -566,6 +655,12 @@ class AsyncPIWebAPIClient(AsyncBatchMixin, AsyncPaginationMixin):
         self.databases = _AsyncDatabasesAccessor(self._client)
         self.system = _AsyncSystemAccessor(self._client)
         self.tables = _AsyncTablesAccessor(self._client)
+        self.unitclasses = _AsyncUnitClassesAccessor(self._client)
+        self.elementcategories = _AsyncElementCategoriesAccessor(self._client)
+        self.analysiscategories = _AsyncAnalysisCategoriesAccessor(self._client)
+        self.attributecategories = _AsyncAttributeCategoriesAccessor(
+            self._client
+        )
 
     async def home(self) -> PISystemInfo:
         """Return system information from the PI Web API landing page.
