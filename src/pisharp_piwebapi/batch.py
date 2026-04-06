@@ -38,10 +38,11 @@ def _validate_batch_requests(requests: dict[str, dict[str, Any]]) -> None:
                 f"Must be one of {sorted(_ALLOWED_BATCH_METHODS)}."
             )
         resource = req.get("Resource", "")
-        if not resource.startswith("/"):
+        if not resource.startswith("/") or resource.startswith("//"):
             raise ValueError(
-                f"Batch request {req_id!r}: Resource must be a relative "
-                f"path starting with '/'. Got {resource!r}."
+                f"Batch request {req_id!r}: Resource must be a single-slash "
+                f"relative path (e.g. '/streams/{{webId}}/value'). "
+                f"Got {resource!r}."
             )
 
 

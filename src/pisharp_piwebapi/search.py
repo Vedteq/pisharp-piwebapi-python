@@ -10,7 +10,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from pisharp_piwebapi.exceptions import raise_for_response, raise_for_response_async
+from pisharp_piwebapi.exceptions import (
+    raise_for_response,
+    raise_for_response_async,
+    validate_web_id,
+)
 
 if TYPE_CHECKING:
     import httpx
@@ -105,6 +109,7 @@ class SearchMixin:
             "start": start_index,
         }
         if scope is not None:
+            validate_web_id(scope, "scope")
             params["scope"] = scope
         if fields is not None:
             params["fields"] = fields
@@ -158,6 +163,7 @@ class AsyncSearchMixin:
             "start": start_index,
         }
         if scope is not None:
+            validate_web_id(scope, "scope")
             params["scope"] = scope
         if fields is not None:
             params["fields"] = fields

@@ -10,7 +10,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from pisharp_piwebapi.exceptions import raise_for_response, raise_for_response_async
+from pisharp_piwebapi.exceptions import (
+    raise_for_response,
+    raise_for_response_async,
+    validate_web_id,
+)
 from pisharp_piwebapi.models import StreamSummary, StreamValues
 
 if TYPE_CHECKING:
@@ -63,6 +67,7 @@ class CalculationMixin:
             "endTime": end_time,
         }
         if web_id is not None:
+            validate_web_id(web_id, "web_id")
             params["webId"] = web_id
         resp = self._client.get("/calculation/recorded", params=params)
         raise_for_response(resp)
@@ -109,6 +114,7 @@ class CalculationMixin:
             "calculationBasis": calculation_basis,
         }
         if web_id is not None:
+            validate_web_id(web_id, "web_id")
             params["webId"] = web_id
         resp = self._client.get("/calculation/summary", params=params)
         raise_for_response(resp)
@@ -153,6 +159,7 @@ class CalculationMixin:
             "sampleInterval": sample_interval,
         }
         if web_id is not None:
+            validate_web_id(web_id, "web_id")
             params["webId"] = web_id
         resp = self._client.get("/calculation/intervals", params=params)
         raise_for_response(resp)
@@ -237,6 +244,7 @@ class AsyncCalculationMixin:
             "endTime": end_time,
         }
         if web_id is not None:
+            validate_web_id(web_id, "web_id")
             params["webId"] = web_id
         resp = await self._client.get(
             "/calculation/recorded", params=params
@@ -285,6 +293,7 @@ class AsyncCalculationMixin:
             "calculationBasis": calculation_basis,
         }
         if web_id is not None:
+            validate_web_id(web_id, "web_id")
             params["webId"] = web_id
         resp = await self._client.get(
             "/calculation/summary", params=params
@@ -329,6 +338,7 @@ class AsyncCalculationMixin:
             "sampleInterval": sample_interval,
         }
         if web_id is not None:
+            validate_web_id(web_id, "web_id")
             params["webId"] = web_id
         resp = await self._client.get(
             "/calculation/intervals", params=params
