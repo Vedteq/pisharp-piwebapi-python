@@ -130,7 +130,8 @@ class TestNotificationRulesSync:
         )
         subs = client.notificationrules.get_subscribers("NR001")
         assert len(subs) == 2
-        assert subs[0]["Name"] == "ops-team@example.com"
+        assert subs[0].name == "ops-team@example.com"
+        assert subs[0].web_id == "SUB001"
 
     def test_get_subscribers_invalid_web_id(self, sync_client):
         client, _ = sync_client
@@ -235,6 +236,7 @@ class TestNotificationRulesAsync:
         )
         subs = await client.notificationrules.get_subscribers("NR001")
         assert len(subs) == 1
+        assert subs[0].name == "ops-team@example.com"
 
     async def test_delete(self, async_client):
         client, mock = async_client

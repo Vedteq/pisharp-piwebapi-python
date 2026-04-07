@@ -10,7 +10,7 @@ from pisharp_piwebapi.exceptions import (
     raise_for_response_async,
     validate_web_id,
 )
-from pisharp_piwebapi.models import PINotificationRule
+from pisharp_piwebapi.models import PINotificationRule, PINotificationRuleSubscriber
 
 if TYPE_CHECKING:
     import httpx
@@ -104,7 +104,7 @@ class NotificationRulesMixin:
     def get_subscribers(
         self,
         web_id: str,
-    ) -> list[dict[str, Any]]:
+    ) -> list[PINotificationRuleSubscriber]:
         """List subscribers (delivery contacts) for a notification rule.
 
         Calls ``GET /notificationrules/{webId}/notificationrulesubscribers``.
@@ -113,7 +113,7 @@ class NotificationRulesMixin:
             web_id: WebID of the notification rule.
 
         Returns:
-            List of subscriber dicts from the API response.
+            List of :class:`PINotificationRuleSubscriber` objects.
 
         Raises:
             NotFoundError: If the notification rule WebID is not found.
@@ -127,8 +127,13 @@ class NotificationRulesMixin:
         )
         raise_for_response(resp)
         data = resp.json()
-        items = data.get("Items", data) if isinstance(data, dict) else data
-        return list(items)
+        items: list[dict[str, Any]] = (
+            data.get("Items", data) if isinstance(data, dict) else data
+        )
+        return [
+            PINotificationRuleSubscriber.model_validate(item)
+            for item in items
+        ]
 
     def delete(self, web_id: str) -> None:
         """Delete an AF Notification Rule.
@@ -237,7 +242,7 @@ class AsyncNotificationRulesMixin:
     async def get_subscribers(
         self,
         web_id: str,
-    ) -> list[dict[str, Any]]:
+    ) -> list[PINotificationRuleSubscriber]:
         """List subscribers (delivery contacts) for a notification rule.
 
         Calls ``GET /notificationrules/{webId}/notificationrulesubscribers``.
@@ -246,7 +251,7 @@ class AsyncNotificationRulesMixin:
             web_id: WebID of the notification rule.
 
         Returns:
-            List of subscriber dicts from the API response.
+            List of :class:`PINotificationRuleSubscriber` objects.
 
         Raises:
             NotFoundError: If the notification rule WebID is not found.
@@ -260,8 +265,13 @@ class AsyncNotificationRulesMixin:
         )
         await raise_for_response_async(resp)
         data = resp.json()
-        items = data.get("Items", data) if isinstance(data, dict) else data
-        return list(items)
+        items: list[dict[str, Any]] = (
+            data.get("Items", data) if isinstance(data, dict) else data
+        )
+        return [
+            PINotificationRuleSubscriber.model_validate(item)
+            for item in items
+        ]
 
     async def delete(self, web_id: str) -> None:
         """Delete an AF Notification Rule.

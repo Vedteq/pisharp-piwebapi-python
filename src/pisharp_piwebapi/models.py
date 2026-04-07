@@ -421,6 +421,35 @@ class PINotificationRule(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+class PINotificationRuleSubscriber(BaseModel):
+    """Represents a PI AF Notification Rule Subscriber.
+
+    Subscribers define the delivery contacts that receive notifications
+    when a notification rule triggers.  Each subscriber references a
+    notification contact template and an optional delivery channel.
+    """
+
+    web_id: str = Field(alias="WebId")
+    id: str = Field(alias="Id", default="")
+    name: str = Field(alias="Name")
+    description: str = Field(alias="Description", default="")
+    path: str = Field(alias="Path", default="")
+    config_string: str = Field(alias="ConfigString", default="")
+    contact_template_name: str = Field(
+        alias="ContactTemplateName", default=""
+    )
+    contact_type: str = Field(alias="ContactType", default="")
+    delivery_channel_name: str = Field(
+        alias="DeliveryChannelName", default=""
+    )
+    plug_in_name: str = Field(alias="PlugInName", default="")
+    escalation_timeout: str = Field(alias="EscalationTimeout", default="")
+    is_enabled: bool = Field(alias="IsEnabled", default=True)
+    links: dict[str, str] = Field(alias="Links", default_factory=dict)
+
+    model_config = {"populate_by_name": True}
+
+
 class StreamSummaryValue(BaseModel):
     """A single summary statistic within a stream summary response.
 
