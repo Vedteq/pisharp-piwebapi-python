@@ -16,6 +16,7 @@ from pisharp_piwebapi.models import (
     EnumerationSet,
     EventFrame,
     PIAssetServer,
+    PICategory,
     PIDatabase,
     PIDataServer,
     PIElement,
@@ -176,6 +177,91 @@ class TestDatabasesSync:
         client.databases.create_element_template(
             "DB001", "NewTemplate", description="A new template"
         )
+        assert route.called
+
+    def test_get_elementcategories(self, sync_client):
+        client, mock = sync_client
+        cat = {
+            "WebId": "ECAT001",
+            "Name": "Equipment",
+            "Description": "Equipment elements",
+            "Path": "\\\\AF\\Production\\Categories[Equipment]",
+            "Links": {},
+        }
+        mock.get("/assetdatabases/DB001/elementcategories").mock(
+            return_value=httpx.Response(200, json={"Items": [cat]})
+        )
+        cats = client.databases.get_elementcategories("DB001")
+        assert len(cats) == 1
+        assert isinstance(cats[0], PICategory)
+        assert cats[0].name == "Equipment"
+
+    def test_get_analysiscategories(self, sync_client):
+        client, mock = sync_client
+        cat = {
+            "WebId": "ACAT001",
+            "Name": "Calculations",
+            "Description": "Calculation analyses",
+            "Path": "",
+            "Links": {},
+        }
+        mock.get("/assetdatabases/DB001/analysiscategories").mock(
+            return_value=httpx.Response(200, json={"Items": [cat]})
+        )
+        cats = client.databases.get_analysiscategories("DB001")
+        assert len(cats) == 1
+        assert isinstance(cats[0], PICategory)
+        assert cats[0].name == "Calculations"
+
+    def test_get_attributecategories(self, sync_client):
+        client, mock = sync_client
+        cat = {
+            "WebId": "ATCAT001",
+            "Name": "Process",
+            "Description": "Process attributes",
+            "Path": "",
+            "Links": {},
+        }
+        mock.get("/assetdatabases/DB001/attributecategories").mock(
+            return_value=httpx.Response(200, json={"Items": [cat]})
+        )
+        cats = client.databases.get_attributecategories("DB001")
+        assert len(cats) == 1
+        assert isinstance(cats[0], PICategory)
+        assert cats[0].name == "Process"
+
+    def test_get_elementcategories_empty(self, sync_client):
+        client, mock = sync_client
+        mock.get("/assetdatabases/DB001/elementcategories").mock(
+            return_value=httpx.Response(200, json={"Items": []})
+        )
+        cats = client.databases.get_elementcategories("DB001")
+        assert cats == []
+
+    def test_create_elementcategory(self, sync_client):
+        client, mock = sync_client
+        route = mock.post("/assetdatabases/DB001/elementcategories").mock(
+            return_value=httpx.Response(201)
+        )
+        client.databases.create_elementcategory(
+            "DB001", "NewCat", description="A new category"
+        )
+        assert route.called
+
+    def test_create_analysiscategory(self, sync_client):
+        client, mock = sync_client
+        route = mock.post("/assetdatabases/DB001/analysiscategories").mock(
+            return_value=httpx.Response(201)
+        )
+        client.databases.create_analysiscategory("DB001", "CalcCat")
+        assert route.called
+
+    def test_create_attributecategory(self, sync_client):
+        client, mock = sync_client
+        route = mock.post(
+            "/assetdatabases/DB001/attributecategories"
+        ).mock(return_value=httpx.Response(201))
+        client.databases.create_attributecategory("DB001", "ProcCat")
         assert route.called
 
     def test_get_elementtemplates_404_raises(self, sync_client):

@@ -14,6 +14,7 @@ from pisharp_piwebapi.models import (
     EnumerationSet,
     EventFrame,
     PIAssetServer,
+    PICategory,
     PIDatabase,
     PIDataServer,
     PIElement,
@@ -306,6 +307,190 @@ class DatabasesMixin:
         raise_for_response(resp)
 
 
+    def get_elementcategories(
+        self,
+        web_id: str,
+        name_filter: str = "*",
+        max_count: int = 100,
+    ) -> list[PICategory]:
+        """List element categories in an AF Database.
+
+        Calls ``GET /assetdatabases/{webId}/elementcategories``.
+
+        Args:
+            web_id: WebID of the AF database.
+            name_filter: Name pattern supporting wildcards.
+            max_count: Maximum number of results.
+
+        Returns:
+            List of :class:`PICategory` objects.
+
+        Raises:
+            NotFoundError: If the database WebID is not found.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        validate_web_id(web_id)
+        resp = self._client.get(
+            f"/assetdatabases/{quote(web_id, safe='')}/elementcategories",
+            params={"nameFilter": name_filter, "maxCount": max_count},
+        )
+        raise_for_response(resp)
+        data = resp.json()
+        items = data.get("Items", []) if isinstance(data, dict) else data
+        return [PICategory.model_validate(item) for item in items]
+
+    def get_analysiscategories(
+        self,
+        web_id: str,
+        name_filter: str = "*",
+        max_count: int = 100,
+    ) -> list[PICategory]:
+        """List analysis categories in an AF Database.
+
+        Calls ``GET /assetdatabases/{webId}/analysiscategories``.
+
+        Args:
+            web_id: WebID of the AF database.
+            name_filter: Name pattern supporting wildcards.
+            max_count: Maximum number of results.
+
+        Returns:
+            List of :class:`PICategory` objects.
+
+        Raises:
+            NotFoundError: If the database WebID is not found.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        validate_web_id(web_id)
+        resp = self._client.get(
+            f"/assetdatabases/{quote(web_id, safe='')}/analysiscategories",
+            params={"nameFilter": name_filter, "maxCount": max_count},
+        )
+        raise_for_response(resp)
+        data = resp.json()
+        items = data.get("Items", []) if isinstance(data, dict) else data
+        return [PICategory.model_validate(item) for item in items]
+
+    def get_attributecategories(
+        self,
+        web_id: str,
+        name_filter: str = "*",
+        max_count: int = 100,
+    ) -> list[PICategory]:
+        """List attribute categories in an AF Database.
+
+        Calls ``GET /assetdatabases/{webId}/attributecategories``.
+
+        Args:
+            web_id: WebID of the AF database.
+            name_filter: Name pattern supporting wildcards.
+            max_count: Maximum number of results.
+
+        Returns:
+            List of :class:`PICategory` objects.
+
+        Raises:
+            NotFoundError: If the database WebID is not found.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        validate_web_id(web_id)
+        resp = self._client.get(
+            f"/assetdatabases/{quote(web_id, safe='')}/attributecategories",
+            params={"nameFilter": name_filter, "maxCount": max_count},
+        )
+        raise_for_response(resp)
+        data = resp.json()
+        items = data.get("Items", []) if isinstance(data, dict) else data
+        return [PICategory.model_validate(item) for item in items]
+
+    def create_elementcategory(
+        self,
+        web_id: str,
+        name: str,
+        *,
+        description: str = "",
+    ) -> None:
+        """Create a new element category in an AF Database.
+
+        Calls ``POST /assetdatabases/{webId}/elementcategories``.
+
+        Args:
+            web_id: WebID of the AF database.
+            name: Name of the new category.
+            description: Optional description.
+
+        Raises:
+            NotFoundError: If the database WebID is not found.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        validate_web_id(web_id)
+        body = {"Name": name, "Description": description}
+        resp = self._client.post(
+            f"/assetdatabases/{quote(web_id, safe='')}/elementcategories",
+            json=body,
+        )
+        raise_for_response(resp)
+
+    def create_analysiscategory(
+        self,
+        web_id: str,
+        name: str,
+        *,
+        description: str = "",
+    ) -> None:
+        """Create a new analysis category in an AF Database.
+
+        Calls ``POST /assetdatabases/{webId}/analysiscategories``.
+
+        Args:
+            web_id: WebID of the AF database.
+            name: Name of the new category.
+            description: Optional description.
+
+        Raises:
+            NotFoundError: If the database WebID is not found.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        validate_web_id(web_id)
+        body = {"Name": name, "Description": description}
+        resp = self._client.post(
+            f"/assetdatabases/{quote(web_id, safe='')}/analysiscategories",
+            json=body,
+        )
+        raise_for_response(resp)
+
+    def create_attributecategory(
+        self,
+        web_id: str,
+        name: str,
+        *,
+        description: str = "",
+    ) -> None:
+        """Create a new attribute category in an AF Database.
+
+        Calls ``POST /assetdatabases/{webId}/attributecategories``.
+
+        Args:
+            web_id: WebID of the AF database.
+            name: Name of the new category.
+            description: Optional description.
+
+        Raises:
+            NotFoundError: If the database WebID is not found.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        validate_web_id(web_id)
+        body = {"Name": name, "Description": description}
+        resp = self._client.post(
+            f"/assetdatabases/{quote(web_id, safe='')}/attributecategories",
+            json=body,
+        )
+        raise_for_response(resp)
+
+
 class AsyncAssetServersMixin:
     """Async methods for PI AF Asset Server operations."""
 
@@ -586,6 +771,189 @@ class AsyncDatabasesMixin:
         }
         resp = await self._client.post(
             f"/assetdatabases/{quote(web_id, safe='')}/elementtemplates",
+            json=body,
+        )
+        await raise_for_response_async(resp)
+
+    async def get_elementcategories(
+        self,
+        web_id: str,
+        name_filter: str = "*",
+        max_count: int = 100,
+    ) -> list[PICategory]:
+        """List element categories in an AF Database (async).
+
+        Calls ``GET /assetdatabases/{webId}/elementcategories``.
+
+        Args:
+            web_id: WebID of the AF database.
+            name_filter: Name pattern supporting wildcards.
+            max_count: Maximum number of results.
+
+        Returns:
+            List of :class:`PICategory` objects.
+
+        Raises:
+            NotFoundError: If the database WebID is not found.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        validate_web_id(web_id)
+        resp = await self._client.get(
+            f"/assetdatabases/{quote(web_id, safe='')}/elementcategories",
+            params={"nameFilter": name_filter, "maxCount": max_count},
+        )
+        await raise_for_response_async(resp)
+        data = resp.json()
+        items = data.get("Items", []) if isinstance(data, dict) else data
+        return [PICategory.model_validate(item) for item in items]
+
+    async def get_analysiscategories(
+        self,
+        web_id: str,
+        name_filter: str = "*",
+        max_count: int = 100,
+    ) -> list[PICategory]:
+        """List analysis categories in an AF Database (async).
+
+        Calls ``GET /assetdatabases/{webId}/analysiscategories``.
+
+        Args:
+            web_id: WebID of the AF database.
+            name_filter: Name pattern supporting wildcards.
+            max_count: Maximum number of results.
+
+        Returns:
+            List of :class:`PICategory` objects.
+
+        Raises:
+            NotFoundError: If the database WebID is not found.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        validate_web_id(web_id)
+        resp = await self._client.get(
+            f"/assetdatabases/{quote(web_id, safe='')}/analysiscategories",
+            params={"nameFilter": name_filter, "maxCount": max_count},
+        )
+        await raise_for_response_async(resp)
+        data = resp.json()
+        items = data.get("Items", []) if isinstance(data, dict) else data
+        return [PICategory.model_validate(item) for item in items]
+
+    async def get_attributecategories(
+        self,
+        web_id: str,
+        name_filter: str = "*",
+        max_count: int = 100,
+    ) -> list[PICategory]:
+        """List attribute categories in an AF Database (async).
+
+        Calls ``GET /assetdatabases/{webId}/attributecategories``.
+
+        Args:
+            web_id: WebID of the AF database.
+            name_filter: Name pattern supporting wildcards.
+            max_count: Maximum number of results.
+
+        Returns:
+            List of :class:`PICategory` objects.
+
+        Raises:
+            NotFoundError: If the database WebID is not found.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        validate_web_id(web_id)
+        resp = await self._client.get(
+            f"/assetdatabases/{quote(web_id, safe='')}/attributecategories",
+            params={"nameFilter": name_filter, "maxCount": max_count},
+        )
+        await raise_for_response_async(resp)
+        data = resp.json()
+        items = data.get("Items", []) if isinstance(data, dict) else data
+        return [PICategory.model_validate(item) for item in items]
+
+    async def create_elementcategory(
+        self,
+        web_id: str,
+        name: str,
+        *,
+        description: str = "",
+    ) -> None:
+        """Create a new element category in an AF Database (async).
+
+        Calls ``POST /assetdatabases/{webId}/elementcategories``.
+
+        Args:
+            web_id: WebID of the AF database.
+            name: Name of the new category.
+            description: Optional description.
+
+        Raises:
+            NotFoundError: If the database WebID is not found.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        validate_web_id(web_id)
+        body = {"Name": name, "Description": description}
+        resp = await self._client.post(
+            f"/assetdatabases/{quote(web_id, safe='')}/elementcategories",
+            json=body,
+        )
+        await raise_for_response_async(resp)
+
+    async def create_analysiscategory(
+        self,
+        web_id: str,
+        name: str,
+        *,
+        description: str = "",
+    ) -> None:
+        """Create a new analysis category in an AF Database (async).
+
+        Calls ``POST /assetdatabases/{webId}/analysiscategories``.
+
+        Args:
+            web_id: WebID of the AF database.
+            name: Name of the new category.
+            description: Optional description.
+
+        Raises:
+            NotFoundError: If the database WebID is not found.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        validate_web_id(web_id)
+        body = {"Name": name, "Description": description}
+        resp = await self._client.post(
+            f"/assetdatabases/{quote(web_id, safe='')}/analysiscategories",
+            json=body,
+        )
+        await raise_for_response_async(resp)
+
+    async def create_attributecategory(
+        self,
+        web_id: str,
+        name: str,
+        *,
+        description: str = "",
+    ) -> None:
+        """Create a new attribute category in an AF Database (async).
+
+        Calls ``POST /assetdatabases/{webId}/attributecategories``.
+
+        Args:
+            web_id: WebID of the AF database.
+            name: Name of the new category.
+            description: Optional description.
+
+        Raises:
+            NotFoundError: If the database WebID is not found.
+            AuthenticationError: If the request is rejected as unauthorized.
+            PIWebAPIError: For any other non-2xx response.
+        """
+        validate_web_id(web_id)
+        body = {"Name": name, "Description": description}
+        resp = await self._client.post(
+            f"/assetdatabases/{quote(web_id, safe='')}/attributecategories",
             json=body,
         )
         await raise_for_response_async(resp)
