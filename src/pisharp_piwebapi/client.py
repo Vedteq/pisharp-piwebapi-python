@@ -49,6 +49,14 @@ from pisharp_piwebapi.notificationrules import (
 from pisharp_piwebapi.pagination import AsyncPaginationMixin, PaginationMixin
 from pisharp_piwebapi.points import AsyncPointsMixin, PointsMixin
 from pisharp_piwebapi.search import AsyncSearchMixin, SearchMixin
+from pisharp_piwebapi.securityidentities import (
+    AsyncSecurityIdentitiesMixin,
+    SecurityIdentitiesMixin,
+)
+from pisharp_piwebapi.securitymappings import (
+    AsyncSecurityMappingsMixin,
+    SecurityMappingsMixin,
+)
 from pisharp_piwebapi.servers import (
     AssetServersMixin,
     AsyncAssetServersMixin,
@@ -246,6 +254,20 @@ class _AttributeCategoriesAccessor(AttributeCategoriesMixin):
         self._client = client
 
 
+class _SecurityIdentitiesAccessor(SecurityIdentitiesMixin):
+    """Namespace for security identity operations on the sync client."""
+
+    def __init__(self, client: httpx.Client) -> None:
+        self._client = client
+
+
+class _SecurityMappingsAccessor(SecurityMappingsMixin):
+    """Namespace for security mapping operations on the sync client."""
+
+    def __init__(self, client: httpx.Client) -> None:
+        self._client = client
+
+
 class _AsyncAnalysisTemplatesAccessor(AsyncAnalysisTemplatesMixin):
     """Namespace for analysis template operations on the async client."""
 
@@ -407,6 +429,20 @@ class _AsyncAttributeCategoriesAccessor(AsyncAttributeCategoriesMixin):
         self._client = client
 
 
+class _AsyncSecurityIdentitiesAccessor(AsyncSecurityIdentitiesMixin):
+    """Namespace for security identity operations on the async client."""
+
+    def __init__(self, client: httpx.AsyncClient) -> None:
+        self._client = client
+
+
+class _AsyncSecurityMappingsAccessor(AsyncSecurityMappingsMixin):
+    """Namespace for security mapping operations on the async client."""
+
+    def __init__(self, client: httpx.AsyncClient) -> None:
+        self._client = client
+
+
 class PIWebAPIClient(BatchMixin, PaginationMixin):
     """Synchronous PI Web API client.
 
@@ -529,6 +565,8 @@ class PIWebAPIClient(BatchMixin, PaginationMixin):
         self.elementcategories = _ElementCategoriesAccessor(self._client)
         self.analysiscategories = _AnalysisCategoriesAccessor(self._client)
         self.attributecategories = _AttributeCategoriesAccessor(self._client)
+        self.securityidentities = _SecurityIdentitiesAccessor(self._client)
+        self.securitymappings = _SecurityMappingsAccessor(self._client)
 
     def home(self) -> PISystemInfo:
         """Return system information from the PI Web API landing page.
@@ -683,6 +721,10 @@ class AsyncPIWebAPIClient(AsyncBatchMixin, AsyncPaginationMixin):
         self.attributecategories = _AsyncAttributeCategoriesAccessor(
             self._client
         )
+        self.securityidentities = _AsyncSecurityIdentitiesAccessor(
+            self._client
+        )
+        self.securitymappings = _AsyncSecurityMappingsAccessor(self._client)
 
     async def home(self) -> PISystemInfo:
         """Return system information from the PI Web API landing page.

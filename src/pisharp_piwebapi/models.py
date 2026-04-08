@@ -673,6 +673,51 @@ class PIAnalysisTemplate(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+class PISecurityIdentity(BaseModel):
+    """Represents a PI Security Identity.
+
+    Security identities are the principal objects used by the PI Data
+    Archive to control access to points, servers, and other resources.
+    They map to Windows users/groups via security mappings.
+    """
+
+    web_id: str = Field(alias="WebId")
+    id: str = Field(alias="Id", default="")
+    name: str = Field(alias="Name")
+    description: str = Field(alias="Description", default="")
+    path: str = Field(alias="Path", default="")
+    is_enabled: bool = Field(alias="IsEnabled", default=True)
+    links: dict[str, str] = Field(alias="Links", default_factory=dict)
+
+    model_config = {"populate_by_name": True}
+
+
+class PISecurityMapping(BaseModel):
+    """Represents a PI Security Mapping.
+
+    Security mappings associate Windows identities (users or groups)
+    with PI security identities, controlling which Windows accounts
+    receive which PI security identity when connecting.
+    """
+
+    web_id: str = Field(alias="WebId")
+    id: str = Field(alias="Id", default="")
+    name: str = Field(alias="Name")
+    description: str = Field(alias="Description", default="")
+    path: str = Field(alias="Path", default="")
+    account: str = Field(alias="Account", default="")
+    security_identity_web_id: str = Field(
+        alias="SecurityIdentityWebId", default=""
+    )
+    security_identity_name: str = Field(
+        alias="SecurityIdentityName", default=""
+    )
+    is_enabled: bool = Field(alias="IsEnabled", default=True)
+    links: dict[str, str] = Field(alias="Links", default_factory=dict)
+
+    model_config = {"populate_by_name": True}
+
+
 class BatchResponseItem(BaseModel):
     """A single response within a PI Web API batch result."""
 
