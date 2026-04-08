@@ -147,6 +147,15 @@ class AttributeCategoriesMixin(_CategoryMixinBase):
     _prefix = "/attributecategories"
 
 
+class TableCategoriesMixin(_CategoryMixinBase):
+    """Methods for Table Category operations. Mixed into the sync client.
+
+    Calls ``GET/PATCH/DELETE /tablecategories/{webId}``.
+    """
+
+    _prefix = "/tablecategories"
+
+
 # ---------------------------------------------------------------------------
 # Async
 # ---------------------------------------------------------------------------
@@ -269,3 +278,12 @@ class AsyncAttributeCategoriesMixin(_AsyncCategoryMixinBase):
     """
 
     _prefix = "/attributecategories"
+
+
+class AsyncTableCategoriesMixin(_AsyncCategoryMixinBase):
+    """Async methods for Table Category operations.
+
+    Calls ``GET/PATCH/DELETE /tablecategories/{webId}``.
+    """
+
+    _prefix = "/tablecategories"

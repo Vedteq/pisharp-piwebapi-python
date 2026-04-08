@@ -13,8 +13,10 @@ from pisharp_piwebapi.categories import (
     AsyncAnalysisCategoriesMixin,
     AsyncAttributeCategoriesMixin,
     AsyncElementCategoriesMixin,
+    AsyncTableCategoriesMixin,
     AttributeCategoriesMixin,
     ElementCategoriesMixin,
+    TableCategoriesMixin,
 )
 from pisharp_piwebapi.exceptions import NotFoundError, ServerError
 from pisharp_piwebapi.models import PICategory
@@ -23,6 +25,7 @@ BASE = "https://piserver/piwebapi"
 EC_WID = "EC0prod001"
 AC_WID = "AC0calc001"
 ATC_WID = "ATC0temp001"
+TC_WID = "TC0data001"
 
 # ---------------------------------------------------------------------------
 # Shared payloads
@@ -69,6 +72,16 @@ class _SyncATC(AttributeCategoriesMixin):
 
 
 class _AsyncATC(AsyncAttributeCategoriesMixin):
+    def __init__(self, client: httpx.AsyncClient) -> None:
+        self._client = client
+
+
+class _SyncTC(TableCategoriesMixin):
+    def __init__(self, client: httpx.Client) -> None:
+        self._client = client
+
+
+class _AsyncTC(AsyncTableCategoriesMixin):
     def __init__(self, client: httpx.AsyncClient) -> None:
         self._client = client
 
@@ -328,3 +341,159 @@ async def test_async_atc_delete_server_error_raises() -> None:
         atc = _AsyncATC(client)
         with pytest.raises(ServerError):
             await atc.delete(ATC_WID)
+
+
+# ===========================================================================
+# Sync — TableCategories
+# ===========================================================================
+
+
+@respx.mock
+def test_tc_get_by_web_id_happy_path() -> None:
+    """TableCategories get_by_web_id hits the correct endpoint."""
+    payload = {**CATEGORY_PAYLOAD, "WebId": TC_WID, "Name": "DataTables"}
+    respx.get(f"{BASE}/tablecategories/{TC_WID}").mock(
+        return_value=httpx.Response(200, json=payload)
+    )
+    with httpx.Client(base_url=BASE) as client:
+        tc = _SyncTC(client)
+        result = tc.get_by_web_id(TC_WID)
+    assert isinstance(result, PICategory)
+    assert result.name == "DataTables"
+
+
+@respx.mock
+def test_tc_get_by_web_id_404_raises() -> None:
+    """TableCategories get_by_web_id raises NotFoundError on 404."""
+    respx.get(f"{BASE}/tablecategories/{TC_WID}").mock(
+        return_value=httpx.Response(404, json={"Message": "Not found"})
+    )
+    with httpx.Client(base_url=BASE) as client:
+        tc = _SyncTC(client)
+        with pytest.raises(NotFoundError):
+            tc.get_by_web_id(TC_WID)
+
+
+@respx.mock
+def test_tc_get_by_path_happy_path() -> None:
+    """TableCategories get_by_path returns a PICategory."""
+    route = respx.get(f"{BASE}/tablecategories").mock(
+        return_value=httpx.Response(
+            200, json={**CATEGORY_PAYLOAD, "WebId": TC_WID}
+        )
+    )
+    with httpx.Client(base_url=BASE) as client:
+        tc = _SyncTC(client)
+        result = tc.get_by_path("\\\\AF\\DB\\TableCategories[DataTables]")
+    assert isinstance(result, PICategory)
+    assert route.called
+    assert b"path=" in route.calls.last.request.url.query
+
+
+@respx.mock
+def test_tc_update_happy_path() -> None:
+    """TableCategories update sends PATCH to correct endpoint."""
+    route = respx.patch(f"{BASE}/tablecategories/{TC_WID}").mock(
+        return_value=httpx.Response(204)
+    )
+    with httpx.Client(base_url=BASE) as client:
+        tc = _SyncTC(client)
+        tc.update(TC_WID, {"Description": "updated"})
+    assert route.called
+    body = json.loads(route.calls.last.request.content)
+    assert body["Description"] == "updated"
+
+
+@respx.mock
+def test_tc_delete_happy_path() -> None:
+    """TableCategories delete sends DELETE to correct endpoint."""
+    route = respx.delete(f"{BASE}/tablecategories/{TC_WID}").mock(
+        return_value=httpx.Response(204)
+    )
+    with httpx.Client(base_url=BASE) as client:
+        tc = _SyncTC(client)
+        tc.delete(TC_WID)
+    assert route.called
+
+
+@respx.mock
+def test_tc_delete_404_raises() -> None:
+    """TableCategories delete raises NotFoundError on 404."""
+    respx.delete(f"{BASE}/tablecategories/{TC_WID}").mock(
+        return_value=httpx.Response(404, json={"Message": "Not found"})
+    )
+    with httpx.Client(base_url=BASE) as client:
+        tc = _SyncTC(client)
+        with pytest.raises(NotFoundError):
+            tc.delete(TC_WID)
+
+
+# ===========================================================================
+# Async — TableCategories
+# ===========================================================================
+
+
+@respx.mock
+async def test_async_tc_get_by_web_id_happy_path() -> None:
+    """Async TableCategories get_by_web_id hits correct endpoint."""
+    payload = {**CATEGORY_PAYLOAD, "WebId": TC_WID, "Name": "DataTables"}
+    respx.get(f"{BASE}/tablecategories/{TC_WID}").mock(
+        return_value=httpx.Response(200, json=payload)
+    )
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        tc = _AsyncTC(client)
+        result = await tc.get_by_web_id(TC_WID)
+    assert isinstance(result, PICategory)
+    assert result.name == "DataTables"
+
+
+@respx.mock
+async def test_async_tc_get_by_path_happy_path() -> None:
+    """Async TableCategories get_by_path returns a PICategory."""
+    respx.get(f"{BASE}/tablecategories").mock(
+        return_value=httpx.Response(
+            200, json={**CATEGORY_PAYLOAD, "WebId": TC_WID}
+        )
+    )
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        tc = _AsyncTC(client)
+        result = await tc.get_by_path("\\\\AF\\DB\\TableCats[Data]")
+    assert isinstance(result, PICategory)
+
+
+@respx.mock
+async def test_async_tc_update_happy_path() -> None:
+    """Async TableCategories update sends PATCH."""
+    route = respx.patch(f"{BASE}/tablecategories/{TC_WID}").mock(
+        return_value=httpx.Response(204)
+    )
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        tc = _AsyncTC(client)
+        await tc.update(TC_WID, {"Description": "updated"})
+    assert route.called
+
+
+@respx.mock
+async def test_async_tc_delete_happy_path() -> None:
+    """Async TableCategories delete sends DELETE."""
+    route = respx.delete(f"{BASE}/tablecategories/{TC_WID}").mock(
+        return_value=httpx.Response(204)
+    )
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        tc = _AsyncTC(client)
+        await tc.delete(TC_WID)
+    assert route.called
+
+
+@respx.mock
+async def test_async_tc_delete_server_error_raises() -> None:
+    """Async TableCategories delete raises ServerError on 500."""
+    respx.delete(f"{BASE}/tablecategories/{TC_WID}").mock(
+        return_value=httpx.Response(
+            500, json={"Message": "Server error"}
+        )
+    )
+    async with httpx.AsyncClient(base_url=BASE) as client:
+        tc = _AsyncTC(client)
+        with pytest.raises(ServerError):
+            await tc.delete(TC_WID)

@@ -27,8 +27,10 @@ from pisharp_piwebapi.categories import (
     AsyncAnalysisCategoriesMixin,
     AsyncAttributeCategoriesMixin,
     AsyncElementCategoriesMixin,
+    AsyncTableCategoriesMixin,
     AttributeCategoriesMixin,
     ElementCategoriesMixin,
+    TableCategoriesMixin,
 )
 from pisharp_piwebapi.elements import AsyncElementsMixin, ElementsMixin
 from pisharp_piwebapi.elementtemplates import (
@@ -254,6 +256,13 @@ class _AttributeCategoriesAccessor(AttributeCategoriesMixin):
         self._client = client
 
 
+class _TableCategoriesAccessor(TableCategoriesMixin):
+    """Namespace for table category operations on the sync client."""
+
+    def __init__(self, client: httpx.Client) -> None:
+        self._client = client
+
+
 class _SecurityIdentitiesAccessor(SecurityIdentitiesMixin):
     """Namespace for security identity operations on the sync client."""
 
@@ -429,6 +438,13 @@ class _AsyncAttributeCategoriesAccessor(AsyncAttributeCategoriesMixin):
         self._client = client
 
 
+class _AsyncTableCategoriesAccessor(AsyncTableCategoriesMixin):
+    """Namespace for table category operations on the async client."""
+
+    def __init__(self, client: httpx.AsyncClient) -> None:
+        self._client = client
+
+
 class _AsyncSecurityIdentitiesAccessor(AsyncSecurityIdentitiesMixin):
     """Namespace for security identity operations on the async client."""
 
@@ -565,6 +581,7 @@ class PIWebAPIClient(BatchMixin, PaginationMixin):
         self.elementcategories = _ElementCategoriesAccessor(self._client)
         self.analysiscategories = _AnalysisCategoriesAccessor(self._client)
         self.attributecategories = _AttributeCategoriesAccessor(self._client)
+        self.tablecategories = _TableCategoriesAccessor(self._client)
         self.securityidentities = _SecurityIdentitiesAccessor(self._client)
         self.securitymappings = _SecurityMappingsAccessor(self._client)
 
@@ -721,6 +738,7 @@ class AsyncPIWebAPIClient(AsyncBatchMixin, AsyncPaginationMixin):
         self.attributecategories = _AsyncAttributeCategoriesAccessor(
             self._client
         )
+        self.tablecategories = _AsyncTableCategoriesAccessor(self._client)
         self.securityidentities = _AsyncSecurityIdentitiesAccessor(
             self._client
         )
