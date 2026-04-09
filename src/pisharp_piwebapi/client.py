@@ -45,6 +45,10 @@ from pisharp_piwebapi.enumerationsets import (
     AsyncEnumerationSetsMixin,
     EnumerationSetsMixin,
 )
+from pisharp_piwebapi.enumerationvalues import (
+    AsyncEnumerationValuesMixin,
+    EnumerationValuesMixin,
+)
 from pisharp_piwebapi.eventframes import AsyncEventFramesMixin, EventFramesMixin
 from pisharp_piwebapi.exceptions import raise_for_response, raise_for_response_async
 from pisharp_piwebapi.models import PISystemInfo
@@ -200,6 +204,13 @@ class _NotificationRulesAccessor(NotificationRulesMixin):
 
 class _EnumerationSetsAccessor(EnumerationSetsMixin):
     """Namespace for enumeration set operations on the sync client."""
+
+    def __init__(self, client: httpx.Client) -> None:
+        self._client = client
+
+
+class _EnumerationValuesAccessor(EnumerationValuesMixin):
+    """Namespace for enumeration value operations on the sync client."""
 
     def __init__(self, client: httpx.Client) -> None:
         self._client = client
@@ -396,6 +407,13 @@ class _AsyncNotificationRulesAccessor(AsyncNotificationRulesMixin):
 
 class _AsyncEnumerationSetsAccessor(AsyncEnumerationSetsMixin):
     """Namespace for enumeration set operations on the async client."""
+
+    def __init__(self, client: httpx.AsyncClient) -> None:
+        self._client = client
+
+
+class _AsyncEnumerationValuesAccessor(AsyncEnumerationValuesMixin):
+    """Namespace for enumeration value operations on the async client."""
 
     def __init__(self, client: httpx.AsyncClient) -> None:
         self._client = client
@@ -605,6 +623,7 @@ class PIWebAPIClient(BatchMixin, PaginationMixin):
         self.eventframes = _EventFramesAccessor(self._client)
         self.elementtemplates = _ElementTemplatesAccessor(self._client)
         self.enumerationsets = _EnumerationSetsAccessor(self._client)
+        self.enumerationvalues = _EnumerationValuesAccessor(self._client)
         self.notificationrules = _NotificationRulesAccessor(self._client)
         self.assetservers = _AssetServersAccessor(self._client)
         self.dataservers = _DataServersAccessor(self._client)
@@ -762,6 +781,9 @@ class AsyncPIWebAPIClient(AsyncBatchMixin, AsyncPaginationMixin):
         self.eventframes = _AsyncEventFramesAccessor(self._client)
         self.elementtemplates = _AsyncElementTemplatesAccessor(self._client)
         self.enumerationsets = _AsyncEnumerationSetsAccessor(self._client)
+        self.enumerationvalues = _AsyncEnumerationValuesAccessor(
+            self._client
+        )
         self.notificationrules = _AsyncNotificationRulesAccessor(self._client)
         self.assetservers = _AsyncAssetServersAccessor(self._client)
         self.dataservers = _AsyncDataServersAccessor(self._client)
