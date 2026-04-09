@@ -74,6 +74,7 @@ from pisharp_piwebapi.servers import (
 from pisharp_piwebapi.streamsets import AsyncStreamSetsMixin, StreamSetsMixin
 from pisharp_piwebapi.system import AsyncSystemMixin, SystemMixin
 from pisharp_piwebapi.tables import AsyncTablesMixin, TablesMixin
+from pisharp_piwebapi.timerules import AsyncTimeRulesMixin, TimeRulesMixin
 from pisharp_piwebapi.unitclasses import AsyncUnitClassesMixin, UnitClassesMixin
 from pisharp_piwebapi.values import AsyncStreamsMixin, StreamsMixin
 
@@ -234,6 +235,13 @@ class _SystemAccessor(SystemMixin):
 
 class _TablesAccessor(TablesMixin):
     """Namespace for AF table operations on the sync client."""
+
+    def __init__(self, client: httpx.Client) -> None:
+        self._client = client
+
+
+class _TimeRulesAccessor(TimeRulesMixin):
+    """Namespace for time rule operations on the sync client."""
 
     def __init__(self, client: httpx.Client) -> None:
         self._client = client
@@ -428,6 +436,13 @@ class _AsyncTablesAccessor(AsyncTablesMixin):
         self._client = client
 
 
+class _AsyncTimeRulesAccessor(AsyncTimeRulesMixin):
+    """Namespace for time rule operations on the async client."""
+
+    def __init__(self, client: httpx.AsyncClient) -> None:
+        self._client = client
+
+
 class _AsyncUnitClassesAccessor(AsyncUnitClassesMixin):
     """Namespace for unit class operations on the async client."""
 
@@ -596,6 +611,7 @@ class PIWebAPIClient(BatchMixin, PaginationMixin):
         self.databases = _DatabasesAccessor(self._client)
         self.system = _SystemAccessor(self._client)
         self.tables = _TablesAccessor(self._client)
+        self.timerules = _TimeRulesAccessor(self._client)
         self.unitclasses = _UnitClassesAccessor(self._client)
         self.elementcategories = _ElementCategoriesAccessor(self._client)
         self.analysiscategories = _AnalysisCategoriesAccessor(self._client)
@@ -752,6 +768,7 @@ class AsyncPIWebAPIClient(AsyncBatchMixin, AsyncPaginationMixin):
         self.databases = _AsyncDatabasesAccessor(self._client)
         self.system = _AsyncSystemAccessor(self._client)
         self.tables = _AsyncTablesAccessor(self._client)
+        self.timerules = _AsyncTimeRulesAccessor(self._client)
         self.unitclasses = _AsyncUnitClassesAccessor(self._client)
         self.elementcategories = _AsyncElementCategoriesAccessor(self._client)
         self.analysiscategories = _AsyncAnalysisCategoriesAccessor(self._client)
