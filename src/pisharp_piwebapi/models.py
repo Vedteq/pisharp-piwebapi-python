@@ -271,6 +271,27 @@ class EventFrame(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+class PIAnalysisRule(BaseModel):
+    """Represents a PI AF Analysis Rule (expression/rollup logic node)."""
+
+    web_id: str = Field(alias="WebId")
+    id: str = Field(alias="Id", default="")
+    name: str = Field(alias="Name")
+    description: str = Field(alias="Description", default="")
+    path: str = Field(alias="Path", default="")
+    config_string: str = Field(alias="ConfigString", default="")
+    display_string: str = Field(alias="DisplayString", default="")
+    editor_type: str = Field(alias="EditorType", default="")
+    has_children: bool = Field(alias="HasChildren", default=False)
+    is_configured: bool = Field(alias="IsConfigured", default=False)
+    is_initializing: bool = Field(alias="IsInitializing", default=False)
+    plug_in_name: str = Field(alias="PlugInName", default="")
+    variable_mapping: str = Field(alias="VariableMapping", default="")
+    links: dict[str, str] = Field(alias="Links", default_factory=dict)
+
+    model_config = {"populate_by_name": True}
+
+
 class Analysis(BaseModel):
     """Represents a PI AF Analysis."""
 

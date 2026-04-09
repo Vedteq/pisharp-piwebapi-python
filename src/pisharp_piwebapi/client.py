@@ -10,6 +10,10 @@ from urllib.parse import urlparse
 import httpx
 
 from pisharp_piwebapi.analyses import AnalysesMixin, AsyncAnalysesMixin
+from pisharp_piwebapi.analysisrules import (
+    AnalysisRulesMixin,
+    AsyncAnalysisRulesMixin,
+)
 from pisharp_piwebapi.analysistemplates import (
     AnalysisTemplatesMixin,
     AsyncAnalysisTemplatesMixin,
@@ -93,6 +97,13 @@ def _build_async_event_hooks() -> dict[str, list[Any]]:
         await raise_for_response_async(response)
 
     return {"response": [_raise_on_error_async]}
+
+
+class _AnalysisRulesAccessor(AnalysisRulesMixin):
+    """Namespace for analysis rule operations on the sync client."""
+
+    def __init__(self, client: httpx.Client) -> None:
+        self._client = client
 
 
 class _AnalysisTemplatesAccessor(AnalysisTemplatesMixin):
@@ -274,6 +285,13 @@ class _SecurityMappingsAccessor(SecurityMappingsMixin):
     """Namespace for security mapping operations on the sync client."""
 
     def __init__(self, client: httpx.Client) -> None:
+        self._client = client
+
+
+class _AsyncAnalysisRulesAccessor(AsyncAnalysisRulesMixin):
+    """Namespace for analysis rule operations on the async client."""
+
+    def __init__(self, client: httpx.AsyncClient) -> None:
         self._client = client
 
 
@@ -559,6 +577,7 @@ class PIWebAPIClient(BatchMixin, PaginationMixin):
             event_hooks=_build_event_hooks(),
         )
         self.analyses = _AnalysesAccessor(self._client)
+        self.analysisrules = _AnalysisRulesAccessor(self._client)
         self.analysistemplates = _AnalysisTemplatesAccessor(self._client)
         self.attributetemplates = _AttributeTemplatesAccessor(self._client)
         self.attributes = _AttributesAccessor(self._client)
@@ -712,6 +731,7 @@ class AsyncPIWebAPIClient(AsyncBatchMixin, AsyncPaginationMixin):
             event_hooks=_build_async_event_hooks(),
         )
         self.analyses = _AsyncAnalysesAccessor(self._client)
+        self.analysisrules = _AsyncAnalysisRulesAccessor(self._client)
         self.analysistemplates = _AsyncAnalysisTemplatesAccessor(self._client)
         self.attributetemplates = _AsyncAttributeTemplatesAccessor(
             self._client
