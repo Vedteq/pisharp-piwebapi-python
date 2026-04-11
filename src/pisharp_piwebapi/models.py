@@ -442,6 +442,31 @@ class PINotificationRule(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+class PIAttributeTrait(BaseModel):
+    """Represents a PI AF Attribute Trait.
+
+    Attribute traits are built-in role labels applied to attributes
+    (e.g. ``LimitLoLo``, ``LimitHiHi``, ``Target``, ``Forecast``) that
+    inform PI clients how to render or interpret the attribute.
+    Traits are server-defined and read-only; you can only list them
+    and look them up by name.
+    """
+
+    name: str = Field(alias="Name")
+    abbreviation: str = Field(alias="Abbreviation", default="")
+    description: str = Field(alias="Description", default="")
+    allow_child_attributes: bool = Field(
+        alias="AllowChildAttributes", default=False
+    )
+    allow_duplicates: bool = Field(alias="AllowDuplicates", default=False)
+    is_data_reference_inherited: bool = Field(
+        alias="IsDataReferenceInherited", default=False
+    )
+    links: dict[str, str] = Field(alias="Links", default_factory=dict)
+
+    model_config = {"populate_by_name": True}
+
+
 class PINotificationRuleTemplate(BaseModel):
     """Represents a PI AF Notification Rule Template.
 

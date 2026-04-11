@@ -23,6 +23,10 @@ from pisharp_piwebapi.attributetemplates import (
     AsyncAttributeTemplatesMixin,
     AttributeTemplatesMixin,
 )
+from pisharp_piwebapi.attributetraits import (
+    AsyncAttributeTraitsMixin,
+    AttributeTraitsMixin,
+)
 from pisharp_piwebapi.auth import basic_auth, kerberos_auth, ntlm_auth
 from pisharp_piwebapi.batch import AsyncBatchMixin, BatchMixin
 from pisharp_piwebapi.calculation import AsyncCalculationMixin, CalculationMixin
@@ -138,6 +142,13 @@ class _AttributeTemplatesAccessor(AttributeTemplatesMixin):
 
 class _AttributesAccessor(AttributesMixin):
     """Namespace for attribute operations on the sync client."""
+
+    def __init__(self, client: httpx.Client) -> None:
+        self._client = client
+
+
+class _AttributeTraitsAccessor(AttributeTraitsMixin):
+    """Namespace for attribute trait operations on the sync client."""
 
     def __init__(self, client: httpx.Client) -> None:
         self._client = client
@@ -348,6 +359,13 @@ class _AsyncAttributeTemplatesAccessor(AsyncAttributeTemplatesMixin):
 
 class _AsyncAttributesAccessor(AsyncAttributesMixin):
     """Namespace for attribute operations on the async client."""
+
+    def __init__(self, client: httpx.AsyncClient) -> None:
+        self._client = client
+
+
+class _AsyncAttributeTraitsAccessor(AsyncAttributeTraitsMixin):
+    """Namespace for attribute trait operations on the async client."""
 
     def __init__(self, client: httpx.AsyncClient) -> None:
         self._client = client
@@ -634,6 +652,7 @@ class PIWebAPIClient(BatchMixin, PaginationMixin):
         self.analysistemplates = _AnalysisTemplatesAccessor(self._client)
         self.attributetemplates = _AttributeTemplatesAccessor(self._client)
         self.attributes = _AttributesAccessor(self._client)
+        self.attributetraits = _AttributeTraitsAccessor(self._client)
         self.points = _PointsAccessor(self._client)
         self.streams = _StreamsAccessor(self._client)
         self.streamsets = _StreamSetsAccessor(self._client)
@@ -795,6 +814,7 @@ class AsyncPIWebAPIClient(AsyncBatchMixin, AsyncPaginationMixin):
             self._client
         )
         self.attributes = _AsyncAttributesAccessor(self._client)
+        self.attributetraits = _AsyncAttributeTraitsAccessor(self._client)
         self.points = _AsyncPointsAccessor(self._client)
         self.streams = _AsyncStreamsAccessor(self._client)
         self.streamsets = _AsyncStreamSetsAccessor(self._client)
