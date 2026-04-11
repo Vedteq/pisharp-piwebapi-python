@@ -93,7 +93,7 @@ class PointsMixin:
         )
         raise_for_response(resp)
         data = resp.json()
-        items = data.get("Items", data) if isinstance(data, dict) else data
+        items = data.get("Items", []) if isinstance(data, dict) else data
         return [PIPoint.model_validate(item) for item in items]
 
     def get_data_servers(self) -> list[PIDataServer]:
@@ -109,7 +109,7 @@ class PointsMixin:
         resp = self._client.get("/dataservers")
         raise_for_response(resp)
         data = resp.json()
-        items = data.get("Items", data) if isinstance(data, dict) else data
+        items = data.get("Items", []) if isinstance(data, dict) else data
         return [PIDataServer.model_validate(item) for item in items]
 
     def get_data_server(self, web_id: str) -> PIDataServer:
@@ -328,7 +328,7 @@ class AsyncPointsMixin:
         )
         await raise_for_response_async(resp)
         data = resp.json()
-        items = data.get("Items", data) if isinstance(data, dict) else data
+        items = data.get("Items", []) if isinstance(data, dict) else data
         return [PIPoint.model_validate(item) for item in items]
 
     async def get_data_servers(self) -> list[PIDataServer]:
@@ -344,7 +344,7 @@ class AsyncPointsMixin:
         resp = await self._client.get("/dataservers")
         await raise_for_response_async(resp)
         data = resp.json()
-        items = data.get("Items", data) if isinstance(data, dict) else data
+        items = data.get("Items", []) if isinstance(data, dict) else data
         return [PIDataServer.model_validate(item) for item in items]
 
     async def get_data_server(self, web_id: str) -> PIDataServer:

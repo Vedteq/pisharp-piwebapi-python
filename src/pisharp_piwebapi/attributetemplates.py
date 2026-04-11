@@ -95,7 +95,7 @@ class AttributeTemplatesMixin:
         raise_for_response(resp)
         data = resp.json()
         items: list[dict[str, Any]] = (
-            data.get("Items", data) if isinstance(data, dict) else data
+            data.get("Items", []) if isinstance(data, dict) else data
         )
         return [PIAttributeTemplate.model_validate(item) for item in items]
 
@@ -125,7 +125,7 @@ class AttributeTemplatesMixin:
         raise_for_response(resp)
         data = resp.json()
         items: list[dict[str, Any]] = (
-            data.get("Items", data) if isinstance(data, dict) else data
+            data.get("Items", []) if isinstance(data, dict) else data
         )
         return [PICategory.model_validate(item) for item in items]
 
@@ -254,7 +254,7 @@ class AsyncAttributeTemplatesMixin:
         await raise_for_response_async(resp)
         data = resp.json()
         items: list[dict[str, Any]] = (
-            data.get("Items", data) if isinstance(data, dict) else data
+            data.get("Items", []) if isinstance(data, dict) else data
         )
         return [PIAttributeTemplate.model_validate(item) for item in items]
 
@@ -284,7 +284,7 @@ class AsyncAttributeTemplatesMixin:
         await raise_for_response_async(resp)
         data = resp.json()
         items: list[dict[str, Any]] = (
-            data.get("Items", data) if isinstance(data, dict) else data
+            data.get("Items", []) if isinstance(data, dict) else data
         )
         return [PICategory.model_validate(item) for item in items]
 

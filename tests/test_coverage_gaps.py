@@ -149,3 +149,36 @@ class TestAssetServerGetByName:
         )
         svr = client.dataservers.get_by_name("MyPIServer")
         assert svr.name == "MyPIServer"
+
+
+class TestItemsFallbackEmptyResponse:
+    """Regression: list-returning methods must return [] when response has no Items key.
+
+    Previously the fallback was ``data.get("Items", data)``, which caused the dict
+    itself to be iterated as a list, producing a ValidationError on each string key.
+    """
+
+    def test_points_search_empty_dict_response(self, sync_client):
+        from conftest import DATA_SERVER
+
+        client, mock = sync_client
+        ds_wid = DATA_SERVER["WebId"]
+        # Server returned neither an Items list nor a flat list — just {}.
+        mock.get(
+            f"/dataservers/{ds_wid}/points",
+            params={"nameFilter": "*", "maxCount": 100},
+        ).mock(return_value=httpx.Response(200, json={}))
+        result = client.points.search(ds_wid)
+        assert result == []
+
+    def test_element_children_empty_dict_response(self, sync_client):
+        from conftest import ELEMENT_PUMP
+
+        client, mock = sync_client
+        el_wid = ELEMENT_PUMP["WebId"]
+        mock.get(
+            f"/elements/{el_wid}/elements",
+            params={"nameFilter": "*", "maxCount": 100},
+        ).mock(return_value=httpx.Response(200, json={}))
+        result = client.elements.get_child_elements(el_wid)
+        assert result == []

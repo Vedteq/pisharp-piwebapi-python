@@ -44,7 +44,7 @@ class ElementsMixin:
         resp = self._client.get("/assetservers")
         raise_for_response(resp)
         data = resp.json()
-        items = data.get("Items", data) if isinstance(data, dict) else data
+        items = data.get("Items", []) if isinstance(data, dict) else data
         return [PIAssetServer.model_validate(item) for item in items]
 
     def get_asset_server(self, web_id: str) -> PIAssetServer:
@@ -86,7 +86,7 @@ class ElementsMixin:
         )
         raise_for_response(resp)
         data = resp.json()
-        items = data.get("Items", data) if isinstance(data, dict) else data
+        items = data.get("Items", []) if isinstance(data, dict) else data
         return [PIDatabase.model_validate(item) for item in items]
 
     def get_database(self, web_id: str) -> PIDatabase:
@@ -169,7 +169,7 @@ class ElementsMixin:
         )
         raise_for_response(resp)
         data = resp.json()
-        items = data.get("Items", data) if isinstance(data, dict) else data
+        items = data.get("Items", []) if isinstance(data, dict) else data
         return [PIElement.model_validate(item) for item in items]
 
     def get_element(self, web_id: str) -> PIElement:
@@ -238,7 +238,7 @@ class ElementsMixin:
         )
         raise_for_response(resp)
         data = resp.json()
-        items = data.get("Items", data) if isinstance(data, dict) else data
+        items = data.get("Items", []) if isinstance(data, dict) else data
         return [PIElement.model_validate(item) for item in items]
 
     def get_attributes(
@@ -269,7 +269,7 @@ class ElementsMixin:
         )
         raise_for_response(resp)
         data = resp.json()
-        items = data.get("Items", data) if isinstance(data, dict) else data
+        items = data.get("Items", []) if isinstance(data, dict) else data
         return [PIAttribute.model_validate(item) for item in items]
 
     def get_attribute(self, web_id: str) -> PIAttribute:
@@ -554,7 +554,7 @@ class AsyncElementsMixin:
         resp = await self._client.get("/assetservers")
         await raise_for_response_async(resp)
         data = resp.json()
-        items = data.get("Items", data) if isinstance(data, dict) else data
+        items = data.get("Items", []) if isinstance(data, dict) else data
         return [PIAssetServer.model_validate(item) for item in items]
 
     async def get_asset_server(self, web_id: str) -> PIAssetServer:
@@ -596,7 +596,7 @@ class AsyncElementsMixin:
         )
         await raise_for_response_async(resp)
         data = resp.json()
-        items = data.get("Items", data) if isinstance(data, dict) else data
+        items = data.get("Items", []) if isinstance(data, dict) else data
         return [PIDatabase.model_validate(item) for item in items]
 
     async def get_database(self, web_id: str) -> PIDatabase:
@@ -678,7 +678,7 @@ class AsyncElementsMixin:
         )
         await raise_for_response_async(resp)
         data = resp.json()
-        items = data.get("Items", data) if isinstance(data, dict) else data
+        items = data.get("Items", []) if isinstance(data, dict) else data
         return [PIElement.model_validate(item) for item in items]
 
     async def get_element(self, web_id: str) -> PIElement:
@@ -747,7 +747,7 @@ class AsyncElementsMixin:
         )
         await raise_for_response_async(resp)
         data = resp.json()
-        items = data.get("Items", data) if isinstance(data, dict) else data
+        items = data.get("Items", []) if isinstance(data, dict) else data
         return [PIElement.model_validate(item) for item in items]
 
     async def get_attributes(
@@ -778,7 +778,7 @@ class AsyncElementsMixin:
         )
         await raise_for_response_async(resp)
         data = resp.json()
-        items = data.get("Items", data) if isinstance(data, dict) else data
+        items = data.get("Items", []) if isinstance(data, dict) else data
         return [PIAttribute.model_validate(item) for item in items]
 
     async def get_attribute(self, web_id: str) -> PIAttribute:

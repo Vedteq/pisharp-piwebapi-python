@@ -98,7 +98,7 @@ class NotificationRulesMixin:
         )
         raise_for_response(resp)
         data = resp.json()
-        items = data.get("Items", data) if isinstance(data, dict) else data
+        items = data.get("Items", []) if isinstance(data, dict) else data
         return [PINotificationRule.model_validate(item) for item in items]
 
     def get_subscribers(
@@ -128,7 +128,7 @@ class NotificationRulesMixin:
         raise_for_response(resp)
         data = resp.json()
         items: list[dict[str, Any]] = (
-            data.get("Items", data) if isinstance(data, dict) else data
+            data.get("Items", []) if isinstance(data, dict) else data
         )
         return [
             PINotificationRuleSubscriber.model_validate(item)
@@ -236,7 +236,7 @@ class AsyncNotificationRulesMixin:
         )
         await raise_for_response_async(resp)
         data = resp.json()
-        items = data.get("Items", data) if isinstance(data, dict) else data
+        items = data.get("Items", []) if isinstance(data, dict) else data
         return [PINotificationRule.model_validate(item) for item in items]
 
     async def get_subscribers(
@@ -266,7 +266,7 @@ class AsyncNotificationRulesMixin:
         await raise_for_response_async(resp)
         data = resp.json()
         items: list[dict[str, Any]] = (
-            data.get("Items", data) if isinstance(data, dict) else data
+            data.get("Items", []) if isinstance(data, dict) else data
         )
         return [
             PINotificationRuleSubscriber.model_validate(item)

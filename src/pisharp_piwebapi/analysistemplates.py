@@ -96,7 +96,7 @@ class AnalysisTemplatesMixin:
         raise_for_response(resp)
         data = resp.json()
         items: list[dict[str, Any]] = (
-            data.get("Items", data) if isinstance(data, dict) else data
+            data.get("Items", []) if isinstance(data, dict) else data
         )
         return [PIAnalysisTemplate.model_validate(item) for item in items]
 
@@ -226,7 +226,7 @@ class AsyncAnalysisTemplatesMixin:
         await raise_for_response_async(resp)
         data = resp.json()
         items: list[dict[str, Any]] = (
-            data.get("Items", data) if isinstance(data, dict) else data
+            data.get("Items", []) if isinstance(data, dict) else data
         )
         return [PIAnalysisTemplate.model_validate(item) for item in items]
 

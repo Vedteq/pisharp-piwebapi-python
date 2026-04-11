@@ -102,7 +102,7 @@ class ElementTemplatesMixin:
         )
         raise_for_response(resp)
         data = resp.json()
-        items = data.get("Items", data) if isinstance(data, dict) else data
+        items = data.get("Items", []) if isinstance(data, dict) else data
         return [PIElementTemplate.model_validate(item) for item in items]
 
     def get_attribute_templates(
@@ -138,7 +138,7 @@ class ElementTemplatesMixin:
         )
         raise_for_response(resp)
         data = resp.json()
-        items = data.get("Items", data) if isinstance(data, dict) else data
+        items = data.get("Items", []) if isinstance(data, dict) else data
         return [PIAttributeTemplate.model_validate(item) for item in items]
 
 
@@ -225,7 +225,7 @@ class AsyncElementTemplatesMixin:
         )
         await raise_for_response_async(resp)
         data = resp.json()
-        items = data.get("Items", data) if isinstance(data, dict) else data
+        items = data.get("Items", []) if isinstance(data, dict) else data
         return [PIElementTemplate.model_validate(item) for item in items]
 
     async def get_attribute_templates(
@@ -261,5 +261,5 @@ class AsyncElementTemplatesMixin:
         )
         await raise_for_response_async(resp)
         data = resp.json()
-        items = data.get("Items", data) if isinstance(data, dict) else data
+        items = data.get("Items", []) if isinstance(data, dict) else data
         return [PIAttributeTemplate.model_validate(item) for item in items]

@@ -96,7 +96,7 @@ class AnalysesMixin:
         )
         raise_for_response(resp)
         data = resp.json()
-        items = data.get("Items", data) if isinstance(data, dict) else data
+        items = data.get("Items", []) if isinstance(data, dict) else data
         return [Analysis.model_validate(item) for item in items]
 
     def update(
@@ -242,7 +242,7 @@ class AsyncAnalysesMixin:
         )
         await raise_for_response_async(resp)
         data = resp.json()
-        items = data.get("Items", data) if isinstance(data, dict) else data
+        items = data.get("Items", []) if isinstance(data, dict) else data
         return [Analysis.model_validate(item) for item in items]
 
     async def update(

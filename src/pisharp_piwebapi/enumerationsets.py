@@ -92,7 +92,7 @@ class EnumerationSetsMixin:
         )
         raise_for_response(resp)
         data = resp.json()
-        items: list[dict[str, Any]] = data.get("Items", data) if isinstance(data, dict) else data
+        items: list[dict[str, Any]] = data.get("Items", []) if isinstance(data, dict) else data
         return [EnumerationValue.model_validate(item) for item in items]
 
     def get_by_data_server(
@@ -120,7 +120,7 @@ class EnumerationSetsMixin:
         )
         raise_for_response(resp)
         data = resp.json()
-        items: list[dict[str, Any]] = data.get("Items", data) if isinstance(data, dict) else data
+        items: list[dict[str, Any]] = data.get("Items", []) if isinstance(data, dict) else data
         return [EnumerationSet.model_validate(item) for item in items]
 
     def create_value(
@@ -233,7 +233,7 @@ class AsyncEnumerationSetsMixin:
         await raise_for_response_async(resp)
         data = resp.json()
         items: list[dict[str, Any]] = (
-            data.get("Items", data) if isinstance(data, dict) else data
+            data.get("Items", []) if isinstance(data, dict) else data
         )
         return [EnumerationValue.model_validate(item) for item in items]
 
@@ -263,7 +263,7 @@ class AsyncEnumerationSetsMixin:
         await raise_for_response_async(resp)
         data = resp.json()
         items: list[dict[str, Any]] = (
-            data.get("Items", data) if isinstance(data, dict) else data
+            data.get("Items", []) if isinstance(data, dict) else data
         )
         return [EnumerationSet.model_validate(item) for item in items]
 

@@ -90,7 +90,7 @@ class UnitClassesMixin:
         raise_for_response(resp)
         data = resp.json()
         items: list[dict[str, Any]] = (
-            data.get("Items", data) if isinstance(data, dict) else data
+            data.get("Items", []) if isinstance(data, dict) else data
         )
         return [PIUnit.model_validate(item) for item in items]
 
@@ -356,7 +356,7 @@ class AsyncUnitClassesMixin:
         await raise_for_response_async(resp)
         data = resp.json()
         items: list[dict[str, Any]] = (
-            data.get("Items", data) if isinstance(data, dict) else data
+            data.get("Items", []) if isinstance(data, dict) else data
         )
         return [PIUnit.model_validate(item) for item in items]
 
