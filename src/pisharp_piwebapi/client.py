@@ -56,6 +56,10 @@ from pisharp_piwebapi.notificationrules import (
     AsyncNotificationRulesMixin,
     NotificationRulesMixin,
 )
+from pisharp_piwebapi.notificationruletemplates import (
+    AsyncNotificationRuleTemplatesMixin,
+    NotificationRuleTemplatesMixin,
+)
 from pisharp_piwebapi.pagination import AsyncPaginationMixin, PaginationMixin
 from pisharp_piwebapi.points import AsyncPointsMixin, PointsMixin
 from pisharp_piwebapi.search import AsyncSearchMixin, SearchMixin
@@ -197,6 +201,13 @@ class _ElementTemplatesAccessor(ElementTemplatesMixin):
 
 class _NotificationRulesAccessor(NotificationRulesMixin):
     """Namespace for notification rule operations on the sync client."""
+
+    def __init__(self, client: httpx.Client) -> None:
+        self._client = client
+
+
+class _NotificationRuleTemplatesAccessor(NotificationRuleTemplatesMixin):
+    """Namespace for notification rule template operations on the sync client."""
 
     def __init__(self, client: httpx.Client) -> None:
         self._client = client
@@ -400,6 +411,15 @@ class _AsyncElementTemplatesAccessor(AsyncElementTemplatesMixin):
 
 class _AsyncNotificationRulesAccessor(AsyncNotificationRulesMixin):
     """Namespace for notification rule operations on the async client."""
+
+    def __init__(self, client: httpx.AsyncClient) -> None:
+        self._client = client
+
+
+class _AsyncNotificationRuleTemplatesAccessor(
+    AsyncNotificationRuleTemplatesMixin
+):
+    """Namespace for notification rule template operations on the async client."""
 
     def __init__(self, client: httpx.AsyncClient) -> None:
         self._client = client
@@ -625,6 +645,9 @@ class PIWebAPIClient(BatchMixin, PaginationMixin):
         self.enumerationsets = _EnumerationSetsAccessor(self._client)
         self.enumerationvalues = _EnumerationValuesAccessor(self._client)
         self.notificationrules = _NotificationRulesAccessor(self._client)
+        self.notificationruletemplates = _NotificationRuleTemplatesAccessor(
+            self._client
+        )
         self.assetservers = _AssetServersAccessor(self._client)
         self.dataservers = _DataServersAccessor(self._client)
         self.databases = _DatabasesAccessor(self._client)
@@ -785,6 +808,9 @@ class AsyncPIWebAPIClient(AsyncBatchMixin, AsyncPaginationMixin):
             self._client
         )
         self.notificationrules = _AsyncNotificationRulesAccessor(self._client)
+        self.notificationruletemplates = _AsyncNotificationRuleTemplatesAccessor(
+            self._client
+        )
         self.assetservers = _AsyncAssetServersAccessor(self._client)
         self.dataservers = _AsyncDataServersAccessor(self._client)
         self.databases = _AsyncDatabasesAccessor(self._client)

@@ -442,6 +442,40 @@ class PINotificationRule(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+class PINotificationRuleTemplate(BaseModel):
+    """Represents a PI AF Notification Rule Template.
+
+    Notification rule templates define reusable notification
+    configurations that are automatically applied to elements derived
+    from an element template.  Creating a notification rule template
+    on an element template can auto-create notification rules on every
+    derived element.
+    """
+
+    web_id: str = Field(alias="WebId")
+    id: str = Field(alias="Id", default="")
+    name: str = Field(alias="Name")
+    description: str = Field(alias="Description", default="")
+    path: str = Field(alias="Path", default="")
+    auto_created: bool = Field(alias="AutoCreated", default=False)
+    category_names: list[str] = Field(
+        alias="CategoryNames", default_factory=list
+    )
+    criteria: str = Field(alias="Criteria", default="")
+    multi_trigger_event_option: str = Field(
+        alias="MultiTriggerEventOption", default=""
+    )
+    nonrepetition_interval: str = Field(
+        alias="NonrepetitionInterval", default=""
+    )
+    resend_interval: str = Field(alias="ResendInterval", default="")
+    status: str = Field(alias="Status", default="")
+    target_name: str = Field(alias="TargetName", default="")
+    links: dict[str, str] = Field(alias="Links", default_factory=dict)
+
+    model_config = {"populate_by_name": True}
+
+
 class PINotificationRuleSubscriber(BaseModel):
     """Represents a PI AF Notification Rule Subscriber.
 
